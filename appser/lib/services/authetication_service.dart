@@ -1,28 +1,45 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AutheticationService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<String?>registerUser({
+  Future<String?> registerUser({
     required String email,
     required String password,
     required String name,
   }) async {
-    try{
-    UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    await userCredential.user!.updateDisplayName(name);
-    return null;
-  } on FirebaseAuthException catch (e) {
-    if(e.code == "email-already-in-use") {
-      return "O usuário já está cadastrado!";
+      // Atualiza o nome do usuário
+      await userCredential.user!.updateDisplayName(name);
+
+      // Cria o documento no Firestore para o usuário
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'session1': true,
+        'session2': false,
+        'session3': false,
+        'session4': false,
+        'session5': false,
+        'session6': false,
+        'session7': false,
+        'session8': false,
+        'nome': name,
+        // Outros dados iniciais podem ser incluídos aqui
+      });
+
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == "email-already-in-use") {
+        return "O usuário já está cadastrado!";
+      }
+      return "Erro ao cadastrar usuário! Chame o suporte pelo Whatsapp!";
     }
-
-    return "Erro ao cadastrar usuário! Chame o suporte pelo Whatsapp!";
-  }
   }
 
   Future<String?> loginUser({
@@ -41,8 +58,7 @@ class AutheticationService {
       } else if (e.code == "wrong-password") {
         return "Senha incorreta!";
       }
-
-      return "Erro ao logar usuário! Chame o suporte por esse link: !";
+      return "E-mail ou senha incorretos";
     }
   }
 

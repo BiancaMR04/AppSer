@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'customplayers.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String videoPath;
-  final String videoTitle;  // Adicionando o título
+  final String videoTitle; // Adicionando o título
 
-  const VideoPlayerScreen({super.key, required this.videoPath, required this.videoTitle});
+  const VideoPlayerScreen(
+      {super.key, required this.videoPath, required this.videoTitle});
 
   @override
   _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
@@ -38,7 +40,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           videoPlayerController: _videoPlayerController,
           autoPlay: false,
           looping: false,
-          customControls: const MaterialControls(), // Controle personalizado
+          customControls: const CustomControls(), // Substitua aqui
           aspectRatio: _videoPlayerController.value.aspectRatio,
         );
 
@@ -79,7 +81,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            widget.videoTitle,  // Usando o título dinâmico
+            widget.videoTitle, // Usando o título dinâmico
             style: TextStyle(fontSize: 24, color: Colors.teal[600]),
             textAlign: TextAlign.center,
           ),
