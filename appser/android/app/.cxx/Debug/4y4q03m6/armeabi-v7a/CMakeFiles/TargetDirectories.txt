@@ -1,0 +1,2 @@
+C:/Users/bianc/Downloads/tcc/AppSer/appser/android/app/.cxx/Debug/4y4q03m6/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/bianc/Downloads/tcc/AppSer/appser/android/app/.cxx/Debug/4y4q03m6/armeabi-v7a/CMakeFiles/rebuild_cache.dir

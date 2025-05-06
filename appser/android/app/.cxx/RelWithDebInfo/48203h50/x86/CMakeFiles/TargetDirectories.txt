@@ -1,0 +1,2 @@
+C:/Users/bianc/Downloads/tcc/AppSer/appser/android/app/.cxx/RelWithDebInfo/48203h50/x86/CMakeFiles/edit_cache.dir
+C:/Users/bianc/Downloads/tcc/AppSer/appser/android/app/.cxx/RelWithDebInfo/48203h50/x86/CMakeFiles/rebuild_cache.dir

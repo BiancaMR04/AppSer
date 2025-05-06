@@ -1,9 +1,9 @@
-import 'package:appser/resources/audios/audiocheckinsix.dart';
-import 'package:appser/resources/audios/audiocheckoutsix.dart';
-import 'package:appser/resources/audios/audiopararsix.dart';
-import 'package:appser/resources/audios/audiopraticapensamento.dart';
+import 'package:appser/resources/audios/audio_player.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
+import 'package:appser/screens/help.dart';
+import 'package:appser/screens/home.dart';
+import 'package:appser/screens/user_tracking_service.dart';
 import 'package:flutter/material.dart';
 
 class ContentScreenSix extends StatelessWidget {
@@ -12,6 +12,8 @@ class ContentScreenSix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       backgroundColor: const Color.fromARGB(255, 234, 242, 242),
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -49,11 +51,19 @@ class ContentScreenSix extends StatelessWidget {
                     title: '1. Check-in',
                     duration: '1:30',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_6',
+                        tipo: 'audio',
+                        itemId: 'checkin',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerCheckinSix(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaoseis/checkinseis.mp3',
+                            audioTitle: 'Check-in',
+                          ),
                         ),
                       );
                     },
@@ -63,11 +73,19 @@ class ContentScreenSix extends StatelessWidget {
                     title: '2. Prática dos Pensamentos',
                     duration: '14:30',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_6',
+                        tipo: 'audio',
+                        itemId: 'pratica_pensamentos',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerPraticaPensamento(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaoseis/praticadospenseis.mp3',
+                            audioTitle: 'Prática dos Pensamentos',
+                          ),
                         ),
                       );
                     },
@@ -78,6 +96,11 @@ class ContentScreenSix extends StatelessWidget {
                     duration: '9:46',
                     icon: Icons.play_circle_filled,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_6',
+                        tipo: 'video',
+                        itemId: 'ras',
+                      );
                       String videoPath =
                           'videos/sessaoseis/rasseis.mp4'; // Caminho no Firebase Storage
                       try {
@@ -107,6 +130,11 @@ class ContentScreenSix extends StatelessWidget {
                     duration: '22:42',
                     icon: Icons.play_circle_filled,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_6',
+                        tipo: 'video',
+                        itemId: 'cadeira_reatividade',
+                      );
                       String videoPath =
                           'videos/sessaoseis/cadeiaseis.mp4'; // Caminho no Firebase Storage
                       try {
@@ -135,11 +163,19 @@ class ContentScreenSix extends StatelessWidget {
                     title: '5. Parar Áudio',
                     duration: '5:12',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_6',
+                        tipo: 'audio',
+                        itemId: 'parar_audio',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerPararAudioSix(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaoseis/pararaudioseis.mp3',
+                            audioTitle: 'Parar Áudio',
+                          ),
                         ),
                       );
                     },
@@ -150,6 +186,11 @@ class ContentScreenSix extends StatelessWidget {
                     duration: '',
                     icon: Icons.article,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_6',
+                        tipo: 'pdf',
+                        itemId: 'praticando_em_casa',
+                      );
                       String pdfPath =
                           'docs/sessaoseis/praticandoemcasaseis.pdf'; // Caminho no Firebase Storage
 
@@ -167,11 +208,19 @@ class ContentScreenSix extends StatelessWidget {
                     title: '7. Check-out',
                     duration: '2:55',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_6',
+                        tipo: 'audio',
+                        itemId: 'checkout',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerCheckoutSix(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaoseis/checkoutseis.mp3',
+                            audioTitle: 'Check-out',
+                          ),
                         ),
                       );
                     },
@@ -182,21 +231,54 @@ class ContentScreenSix extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white.withOpacity(0.9),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Color(0xFF00A896)),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info_outline, color: Color(0xFF00A896)),
-            label: '',
+bottomNavigationBar: Padding(
+  
+  padding: const EdgeInsets.only(bottom: 20.0), // distância do fundo
+  child: SafeArea(
+    child: Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
+      height: 60,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Home()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  ),
+),
     );
-  }
+
+  
+}
 
   Widget _buildContentButton(BuildContext context,
       {required String title, required String duration, required IconData icon, required VoidCallback onTap}) {

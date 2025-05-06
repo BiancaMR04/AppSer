@@ -2,13 +2,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AutheticationService {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  AutheticationService(this._firebaseAuth);
+  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
   Future<String?> registerUser({
     required String email,
     required String password,
     required String name,
+    required String cpf,
   }) async {
     try {
       UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
@@ -30,6 +34,7 @@ class AutheticationService {
         'session7': false,
         'session8': false,
         'nome': name,
+        'cpf': cpf,
         // Outros dados iniciais podem ser incluídos aqui
       });
 
@@ -42,7 +47,8 @@ class AutheticationService {
     }
   }
 
-  Future<String?> loginUser({
+  Future<String?> loginUser(
+    {
     required String email,
     required String password,
   }) async {

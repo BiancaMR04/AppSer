@@ -30,9 +30,11 @@ class SessionScreen extends StatelessWidget {
     String materialTitle = 'Material de apoio Sessão $sessionNumber';
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFFEAF2F2),
+        backgroundColor: const Color.fromARGB(0, 234, 242, 242),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back), // Ícone de voltar à esquerda
@@ -42,7 +44,13 @@ class SessionScreen extends StatelessWidget {
         ),
       ),
       body: Container(
-        color: const Color(0xFFEAF2F2), // Define a cor de fundo aqui
+         decoration: const BoxDecoration(
+    image: DecorationImage(
+      image: AssetImage('assets/Registrar.png'),
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+    ),
+  ), // Define a cor de fundo aqui
         child: FutureBuilder<String?>(
           future: _getFirstAccessDate(sessionNumber),
           builder: (context, snapshot) {
@@ -102,34 +110,53 @@ class SessionScreen extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white.withOpacity(0.9),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Color(0xFF00A896)),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info_outline, color: Color(0xFF00A896)),
-            label: '',
+      bottomNavigationBar: Padding(
+  
+  padding: const EdgeInsets.only(bottom: 20.0), // distância do fundo
+  child: SafeArea(
+    child: Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const Home()),
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HelpScreen()),
-            );
-          }
-        },
       ),
+      height: 60,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Home()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  ),
+),
     );
-  }
+
+}
 
   Future<String?> _getFirstAccessDate(int sessionNumber) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

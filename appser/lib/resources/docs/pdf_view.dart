@@ -73,7 +73,9 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      //backgroundColor: Colors.white,
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -85,54 +87,104 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           },
         ),
       ),
-      body: Column(
-        children: [
-          Text(
-            widget.pdfTitle,
-            style: TextStyle(fontSize: 24, color: Colors.teal[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          localPath.isNotEmpty
-              ? Expanded(
+      body: Stack(
+  children: [
+    Positioned.fill(
+      child: Image.asset(
+        'assets/Registrar.png',
+        fit: BoxFit.cover,
+      ),
+    ),
+    Center(
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text(
+        widget.pdfTitle,
+        style: TextStyle(fontSize: 24, color: Colors.teal[600]),
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: 20),
+      localPath.isNotEmpty
+          ? SizedBox(
+              height: 600,
+              width: MediaQuery.of(context).size.width * 0.9,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
                   child: PDFView(
                     filePath: localPath,
-                    onRender: (_pages) {
+                    onRender: (_) {
                       _onPdfViewed();
                     },
                   ),
-                )
-              : const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            )
+          : const CircularProgressIndicator(),
+    ],
+  ),
+),
+  ],
+      ),
+      bottomNavigationBar: Padding(
+  
+  padding: const EdgeInsets.only(bottom: 20.0), // distância do fundo
+  child: SafeArea(
+    child: Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white.withOpacity(0.9),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Color(0xFF00A896)),
-            label: '',
+      height: 60,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Home()),
+              );
+            },
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info_outline, color: Color(0xFF00A896)),
-            label: '',
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
+            },
           ),
         ],
-        onTap: (index) {
-          if (index == 0) {
-            // Navegação para a HomeScreen
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const Home()),
-            );
-          } else if (index == 1) {
-            // Navegação para a AjudaScreen
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HelpScreen()),
-            );
-          }
-        },
       ),
+    ),
+  ),
+),
     );
-  }
+
+  
+}
 }

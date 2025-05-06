@@ -1,7 +1,9 @@
-import 'package:appser/resources/audios/audiocheckineight.dart';
-import 'package:appser/resources/audios/audiocheckouteight.dart';
+import 'package:appser/resources/audios/audio_player.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
+import 'package:appser/screens/help.dart';
+import 'package:appser/screens/home.dart';
+import 'package:appser/screens/user_tracking_service.dart';
 import 'package:flutter/material.dart';
 
 class ContentScreenEight extends StatelessWidget {
@@ -10,6 +12,8 @@ class ContentScreenEight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       backgroundColor: const Color.fromARGB(255, 234, 242, 242),
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -45,23 +49,38 @@ class ContentScreenEight extends StatelessWidget {
                   _buildContentButton(
                     context,
                     title: '1. Check-in',
-                    duration: '1:07',
+                    duration: '2:59',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_8',
+                        tipo: 'audio',
+                        itemId: 'checkin',
+                      );
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerCheckinEight(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaooito/checkineight.mp3',
+                            audioTitle: 'Check-in',
+                          ),
                         ),
                       );
                     },
                   ),
                   _buildContentButton(
                     context,
-                    title: '2. Poema + Suporte e estratégias para prática continuada',
+                    title:
+                        '2. Poema + Suporte e estratégias para prática continuada',
                     duration: '24:24',
                     icon: Icons.play_circle_filled,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_8',
+                        tipo: 'video',
+                        itemId: 'poema_suporte_estrategias',
+                      );
                       String videoPath =
                           'videos/sessaooito/poemaoito.mp4'; // Caminho no Firebase Storage
                       try {
@@ -73,8 +92,9 @@ class ContentScreenEight extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => VideoPlayerScreen(
-                                  videoPath:
-                                      videoPath, videoTitle: 'Poema + Suporte e estratégias para prática continuada'), // Passe o caminho do vídeo
+                                  videoPath: videoPath,
+                                  videoTitle:
+                                      'Poema + Suporte e estratégias para prática continuada'), // Passe o caminho do vídeo
                             ),
                           );
                         } else {
@@ -91,6 +111,11 @@ class ContentScreenEight extends StatelessWidget {
                     duration: '8:56',
                     icon: Icons.play_circle_filled,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_8',
+                        tipo: 'video',
+                        itemId: 'pratica_pedra',
+                      );
                       String videoPath =
                           'videos/sessaooito/praticapedraoito.mp4'; // Caminho no Firebase Storage
                       try {
@@ -102,8 +127,9 @@ class ContentScreenEight extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => VideoPlayerScreen(
-                                  videoPath:
-                                      videoPath, videoTitle: 'Prática da pedra'), // Passe o caminho do vídeo
+                                  videoPath: videoPath,
+                                  videoTitle:
+                                      'Prática da pedra'), // Passe o caminho do vídeo
                             ),
                           );
                         } else {
@@ -120,14 +146,22 @@ class ContentScreenEight extends StatelessWidget {
                     duration: '',
                     icon: Icons.article,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_8',
+                        tipo: 'pdf',
+                        itemId: 'praticando_em_casa',
+                      );
                       String pdfPath =
                           'docs/sessaooito/praticandoemcasaoito.pdf'; // Caminho no Firebase Storage
 
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              PdfViewerScreen(pdfPath: pdfPath, downloadPath: 'docs/sessaooito/praticandoemcasaoito.pdf' , pdfTitle: 'Praticando em Casa'),
+                          builder: (context) => PdfViewerScreen(
+                              pdfPath: pdfPath,
+                              downloadPath:
+                                  'docs/sessaooito/praticandoemcasaoito.pdf',
+                              pdfTitle: 'Praticando em Casa'),
                         ),
                       );
                     },
@@ -137,11 +171,19 @@ class ContentScreenEight extends StatelessWidget {
                     title: '5. Check-out',
                     duration: '1:10',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_8',
+                        tipo: 'audio',
+                        itemId: 'checkout',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerCheckoutEight(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaooito/checkouteight.mp3',
+                            audioTitle: 'Check-out',
+                          ),
                         ),
                       );
                     },
@@ -152,24 +194,59 @@ class ContentScreenEight extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white.withOpacity(0.9),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Color(0xFF00A896)),
-            label: '',
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.only(bottom: 20.0), // distância do fundo
+        child: SafeArea(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 40),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.home, color: Color(0xFF00A896)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Home()),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon:
+                      const Icon(Icons.info_outline, color: Color(0xFF00A896)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const HelpScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info_outline, color: Color(0xFF00A896)),
-            label: '',
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildContentButton(BuildContext context,
-      {required String title, required String duration, required IconData icon, required VoidCallback onTap}) {
+      {required String title,
+      required String duration,
+      required IconData icon,
+      required VoidCallback onTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: ElevatedButton(
@@ -207,6 +284,7 @@ class ContentScreenEight extends StatelessWidget {
       ),
     );
   }
+
   String getVideoUrl(String videoPath) {
     // Aqui você pode implementar a lógica para buscar a URL do vídeo
     return 'https://example.com/$videoPath'; // Exemplo de URL

@@ -1,8 +1,10 @@
-import 'package:appser/resources/audios/audiocheckinfive.dart';
-import 'package:appser/resources/audios/audiocheckoutfive.dart';
-import 'package:appser/resources/audios/audiomeditacaofive.dart';
+
+import 'package:appser/resources/audios/audio_player.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
+import 'package:appser/screens/help.dart';
+import 'package:appser/screens/home.dart';
+import 'package:appser/screens/user_tracking_service.dart';
 import 'package:flutter/material.dart';
 
 class ContentScreenFive extends StatelessWidget {
@@ -11,6 +13,8 @@ class ContentScreenFive extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
       backgroundColor: const Color.fromARGB(255, 234, 242, 242),
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -48,25 +52,42 @@ class ContentScreenFive extends StatelessWidget {
                     title: '1. Check-in',
                     duration: '1:45',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'audio',
+                        itemId: 'checkin',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerCheckinFive(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaocinco/checkincinco.mp3',
+                            audioTitle: 'Check-in',
+                          ),
                         ),
                       );
                     },
                   ),
+
                   _buildContentButton(
                     context,
                     title: '2. Meditação Sentada',
                     duration: '16:12',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'audio',
+                        itemId: 'meditacao_sentada',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerMeditacaoFive(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaocinco/meditacaosentadacinco.mp3',
+                            audioTitle: 'Meditação Sentada',
+                          ),
                         ),
                       );
                     },
@@ -77,6 +98,11 @@ class ContentScreenFive extends StatelessWidget {
                     duration: '',
                     icon: Icons.article,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'pdf',
+                        itemId: 'poema_casa_hospedes',
+                      );
                       String pdfPath =
                           'docs/sessaocinco/poemacasacinco.pdf'; // Caminho no Firebase Storage
 
@@ -91,10 +117,15 @@ class ContentScreenFive extends StatelessWidget {
                   ),
                   _buildContentButton(
                     context,
-                    title: '4. Discusão sobre aceitação e emoções',
+                    title: '4. Discussão sobre aceitação e emoções',
                     duration: '11:34',
                     icon: Icons.play_circle_filled,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'video',
+                        itemId: 'discussao_aceitacao_emocoes',
+                      );
                       String videoPath =
                           'videos/sessaocinco/discussaocinco.mp4'; // Caminho no Firebase Storage
                       try {
@@ -124,6 +155,11 @@ class ContentScreenFive extends StatelessWidget {
                     duration: '6:06',
                     icon: Icons.play_circle_filled,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'video',
+                        itemId: 'revisao_cinco_desafios',
+                      );
                       String videoPath =
                           'videos/sessaocinco/revendocinco.mp4'; // Caminho no Firebase Storage
                       try {
@@ -153,6 +189,11 @@ class ContentScreenFive extends StatelessWidget {
                     duration: '8:01',
                     icon: Icons.play_circle_filled,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'video',
+                        itemId: 'movimentos_copy',
+                      );
                       String videoPath =
                           'videos/sessaocinco/movimentoscinco.mp4'; // Caminho no Firebase Storage
                       try {
@@ -182,6 +223,11 @@ class ContentScreenFive extends StatelessWidget {
                     duration: '',
                     icon: Icons.article,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'pdf',
+                        itemId: 'movimentos_mindfulness',
+                      );
                       String pdfPath =
                           'docs/sessaocinco/movimentosmindcinco.pdf'; // Caminho no Firebase Storage
 
@@ -200,6 +246,11 @@ class ContentScreenFive extends StatelessWidget {
                     duration: '',
                     icon: Icons.article,
                     onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'pdf',
+                        itemId: 'praticando_em_casa',
+                      );
                       String pdfPath =
                           'docs/sessaocinco/praticandoemcasacinco.pdf'; // Caminho no Firebase Storage
 
@@ -217,11 +268,19 @@ class ContentScreenFive extends StatelessWidget {
                     title: '9. Check-out',
                     duration: '2:01',
                     icon: Icons.headset,
-                    onTap: () {
+                    onTap: () async {
+                      await UserTrackingService.registrarClique(
+                        sessaoId: 'sessao_5',
+                        tipo: 'audio',
+                        itemId: 'checkout',
+                      );
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AudioPlayerCheckoutFive(),
+                          builder: (context) => const AudioPlayerScreen(
+                            audioPath: 'audios/sessaocinco/checkoutcinco.mp3',
+                            audioTitle: 'Check-out',
+                          ),
                         ),
                       );
                     },
@@ -232,21 +291,54 @@ class ContentScreenFive extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white.withOpacity(0.9),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Color(0xFF00A896)),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info_outline, color: Color(0xFF00A896)),
-            label: '',
+bottomNavigationBar: Padding(
+  
+  padding: const EdgeInsets.only(bottom: 20.0), // distância do fundo
+  child: SafeArea(
+    child: Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
+      height: 60,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Home()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Color(0xFF00A896)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
+  ),
+),
     );
-  }
+
+  
+}
 
   Widget _buildContentButton(BuildContext context,
       {required String title, required String duration, required IconData icon, required VoidCallback onTap}) {
