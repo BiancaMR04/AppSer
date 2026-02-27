@@ -1,23 +1,15 @@
-import 'package:appser/screens/help.dart';
-import 'package:appser/screens/home.dart';
+import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
+import 'package:appser/presentation/widgets/app_background.dart';
+import 'package:appser/presentation/widgets/app_back_app_bar.dart';
+import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Import para SharedPreferences
-import 'contentscreenone.dart';
-import 'materialscreenone.dart';
-import 'contentscreentwo.dart';
-import 'materialscreentwo.dart';
-import 'contentscreenthree.dart';
-import 'materialscreenthree.dart';
-import 'contentscreenfour.dart';
-import 'materialscreenfour.dart';
-import 'contentscreenfive.dart';
-import 'materialscreenfive.dart';
-import 'contentscreensix.dart';
-import 'materialscreensix.dart';
-import 'contentscreenseven.dart';
-import 'materialscreenseven.dart';
-import 'contentscreeneight.dart';
-import 'materialscreeneight.dart';
+import 'package:appser/sessions/session_content_screen.dart';
+import 'package:appser/sessions/session_material_screen.dart';
+
+import 'package:appser/core/theme/app_colors.dart';
+import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
+import 'package:appser/sessions/widgets/session_header.dart';
 
 class SessionScreen extends StatelessWidget {
   final int sessionNumber;
@@ -29,47 +21,26 @@ class SessionScreen extends StatelessWidget {
     String sessionTitle = 'Sessão $sessionNumber';
     String materialTitle = 'Material de apoio Sessão $sessionNumber';
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color.fromARGB(0, 234, 242, 242),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back), // Ícone de voltar à esquerda
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+    return AppScaffold(
+      appBar: AppBackAppBar(
+        titleText: 'Sessão $sessionNumber',
+        backgroundColor: Colors.transparent,
       ),
-      body: Container(
-         decoration: const BoxDecoration(
-    image: DecorationImage(
-      image: AssetImage('assets/Registrar.png'),
-      fit: BoxFit.cover,
-      alignment: Alignment.center,
-    ),
-  ), // Define a cor de fundo aqui
+      body: AppBackground(
         child: FutureBuilder<String?>(
           future: _getFirstAccessDate(sessionNumber),
           builder: (context, snapshot) {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/logo.png',
-                  height: 100, // Ajuste a altura conforme necessário
-                ),
-                Text(
-                  sessionTitle,
-                  style: const TextStyle(
+                SessionHeader(
+                  title: sessionTitle,
+                  titleStyle: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(255, 70, 148, 166),
+                    color: AppColors.primaryBlue,
                   ),
                 ),
-                const SizedBox(height: 20),
                 if (snapshot.hasData && snapshot.data != null)
                   Text(
                     'Primeiro acesso: ${snapshot.data}',
@@ -87,7 +58,8 @@ class SessionScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => _getContentScreen(sessionNumber),
+                        builder: (context) =>
+                            SessionContentScreen(sessionNumber: sessionNumber),
                       ),
                     );
                   },
@@ -100,7 +72,8 @@ class SessionScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => _getMaterialScreen(sessionNumber),
+                        builder: (context) =>
+                            SessionMaterialScreen(sessionNumber: sessionNumber),
                       ),
                     );
                   },
@@ -110,53 +83,9 @@ class SessionScreen extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: Padding(
-  
-  padding: const EdgeInsets.only(bottom: 20.0), // distância do fundo
-  child: SafeArea(
-    child: Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      height: 60,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.home, color: Color(0xFF00A896)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const Home()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.info_outline, color: Color(0xFF00A896)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HelpScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-    ),
-  ),
-),
+      bottomNavigationBar: const AppBottomNavBar(),
     );
-
-}
+  }
 
   Future<String?> _getFirstAccessDate(int sessionNumber) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -174,78 +103,17 @@ Widget _buildSessionButton(BuildContext context,
     {required String title,
     required IconData icon,
     required VoidCallback onTap}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 10.0),
-    child: ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(255, 250, 250, 250),
-        padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color.fromARGB(255, 136, 187, 185)),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
-      ),
+  return AppElevatedRowButton(
+    onPressed: onTap,
+    icon: icon,
+    iconColor: AppColors.sessionIconMuted,
+    title: title,
+    backgroundColor: const Color.fromARGB(255, 250, 250, 250),
+    outerPadding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 10.0),
+    iconGap: 20,
+    titleStyle: const TextStyle(
+      fontSize: 18,
+      color: Colors.black87,
     ),
   );
-}
-
-Widget _getContentScreen(int sessionNumber) {
-  switch (sessionNumber) {
-    case 1:
-      return ContentScreenOne();
-    case 2:
-      return ContentScreenTwo();
-    case 3:
-      return ContentScreenThree();
-    case 4:
-      return ContentScreenFour();
-    case 5:
-      return ContentScreenFive();
-    case 6:
-      return ContentScreenSix();
-    case 7:
-      return ContentScreenSeven();
-    case 8:
-      return ContentScreenEight();
-    default:
-      return ContentScreenOne();
-  }
-}
-
-Widget _getMaterialScreen(int sessionNumber) {
-  switch (sessionNumber) {
-    case 1:
-      return MaterialScreenOne();
-    case 2:
-      return MaterialScreenTwo();
-    case 3:
-      return MaterialScreenThree();
-    case 4:
-      return MaterialScreenFour();
-    case 5:
-      return MaterialScreenFive();
-    case 6:
-      return MaterialScreenSix();
-    case 7:
-      return MaterialScreenSeven();
-    case 8:
-      return MaterialScreenEight();
-    default:
-      return MaterialScreenOne();
-  }
 }

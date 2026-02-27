@@ -1,12 +1,14 @@
-import 'package:appser/screens/authentication.dart';
-import 'package:appser/services/authetication_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:excel/excel.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'dart:io';
+import 'package:provider/provider.dart';
+
+import 'package:appser/presentation/widgets/app_background.dart';
+import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
+import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/stateChanges.dart';
+
+import '../presentation/controllers/superuser_controller.dart';
+import 'superuser_groups_screen.dart';
+import 'superuser_participants_screen.dart';
 
 class SuperuserDashboard extends StatefulWidget {
   const SuperuserDashboard({super.key});
@@ -16,278 +18,320 @@ class SuperuserDashboard extends StatefulWidget {
 }
 
 class _SuperuserDashboardState extends State<SuperuserDashboard> {
-  final _firestore = FirebaseFirestore.instance;
+  Future<T> _runWithLoading<T>({
+    required String message,
+    required Future<T> Function() action,
+  }) async {
+    if (!mounted) return action();
 
-  final nomesSessoesAmigaveis = {
-    'sessao_1': 'Sessão 1',
-    'sessao_2': 'Sessão 2',
-    'sessao_3': 'Sessão 3',
-    'sessao_4': 'Sessão 4',
-    'sessao_5': 'Sessão 5',
-    'sessao_6': 'Sessão 6',
-    'sessao_7': 'Sessão 7',
-    'sessao_8': 'Sessão 8',
-  };
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _BlockingLoadingDialog(message: message),
+    );
 
-  static const Map<String, String> nomeParaId = {
-    'checkin': 'Check-in',
-    'preparacao_pratica_uva':
-        'Preparação para o exercício "Prática da Uva Passa"',
-    'pratica_uva': 'Prática da Uva Passa',
-    'oque_e_mindfulness': 'O que é Mindfulness',
-    'posturas_copy': 'Posturas copy',
-    'escaneamento_corporal': 'Escaneamento corporal',
-    'praticando_em_casa': 'Praticando em Casa',
-    'checkout': 'Check-out',
-    'escaneamento_automassagem': 'Escaneamento com automassagem',
-    'cinco_desafios': 'Cinco desafios',
-    'andando_na_rua': 'Andando na rua',
-    'sofrimento_duplo': 'Primeiro e segundo sofrimento',
-    'montanha': 'Montanha',
-    'consciencia_ouvir': 'Consciência de ouvir',
-    'caminhada_mindfulness': 'Caminhada mindfulness',
-    'respiracao': 'Respiração',
-    'parar_teoria': 'Parar Teoria',
-    'parar_audio': 'Parar Áudio',
-    'consciencia_ver': 'Consciência de Ver',
-    'meditacao_sentada': 'Meditação Sentada',
-    'lista_gatilhos': 'Lista de gatilhos',
-    'falso_refugio': 'Falso Refúgio',
-    'parar_situacao': 'Parar na situação desafiadora',
-    'poema_casa_hospedes': 'Poema "A Casa de Hóspedes"',
-    'discussao_aceitacao_emocoes': 'Discussão sobre aceitação e emoções',
-    'revisao_cinco_desafios': 'Revendo os Cinco desafios da Sessão 2',
-    'movimentos_copy': 'Movimentos Copy',
-    'movimentos_mindfulness': 'Movimentos Mindfulness',
-    'pratica_pensamentos': 'Prática dos Pensamentos',
-    'ras': 'Te Recebo Aceito Solto (RAS)',
-    'cadeira_reatividade': 'Cadeira da reatividade',
-    'bondade_amorosa': 'Prática Bondade Amorosa',
-    'lista_atividades_diarias': 'Lista de atividades diárias',
-    'visualizacao_fortalecedoras': 'Visualização Atividades Fortalecedoras',
-    'funil_exaustao': 'Funil da exaustão',
-    'poema_suporte_estrategias':
-        'Poema + Suporte e estratégias para prática continuada',
-    'pratica_pedra': 'Prática da pedra',
-  };
-
-  String formatarItem(String raw) {
-    String semPrefixo = raw.replaceAll(RegExp(r'^(video_|audio_|pdf_)'), '');
-    return nomeParaId.entries
-        .firstWhere(
-          (entry) =>
-              entry.key.toLowerCase().replaceAll(RegExp(r'["\s]'), '') ==
-              semPrefixo.toLowerCase().replaceAll(RegExp(r'["\s]'), ''),
-          orElse: () => MapEntry(semPrefixo, semPrefixo),
-        )
-        .value;
-  }
-
-  Future<List<Map<String, dynamic>>> buscarUsuarios() async {
-    final usuariosSnapshot = await _firestore.collection('users').get();
-    List<Map<String, dynamic>> usuarios = [];
-
-    for (var doc in usuariosSnapshot.docs) {
-      final userData = doc.data();
-      final sessoesSnapshot = await doc.reference.collection('sessoes').get();
-
-      Map<String, dynamic> sessoes = {};
-      for (var sessaoDoc in sessoesSnapshot.docs) {
-        final sessaoData = sessaoDoc.data();
-        sessoes[sessaoDoc.id] = {
-          'vezesFinalizada': sessaoData['vezesFinalizada'] ?? 0,
-          'cliques': Map<String, int>.from(sessaoData['cliques'] ?? {}),
-        };
-      }
-
-      usuarios.add({
-        'nome': userData['nome'] ?? 'Sem nome',
-        'cpf': userData['cpf'] ?? 'Sem CPF',
-        'sessoes': sessoes,
-      });
-    }
-
-    return usuarios;
-  }
-
-Future<void> _logout() async {
-  await FirebaseAuth.instance.signOut();
-
-}
-
-  Future<void> exportarParaExcel() async {
-    final usuarios = await buscarUsuarios();
-    final excel = Excel.createExcel();
-    final sheet = excel['Relatório'];
-
-    // Cabeçalho
-    sheet.appendRow([
-      TextCellValue('Nome'),
-      TextCellValue('CPF'),
-      TextCellValue('Sessão'),
-      TextCellValue('Atividade'),
-      TextCellValue('Cliques'),
-      TextCellValue('Sessões Finalizadas'),
-    ]);
-
-    for (var usuario in usuarios) {
-      final nome = usuario['nome'];
-      final cpf = usuario['cpf'];
-      final sessoes = usuario['sessoes'] as Map<String, dynamic>;
-
-      for (var sessaoEntry in sessoes.entries) {
-        final sessaoId = sessaoEntry.key;
-        final dadosSessao = sessaoEntry.value;
-        final vezesFinalizada = dadosSessao['vezesFinalizada'] ?? 0;
-        final cliques = Map<String, int>.from(dadosSessao['cliques']);
-
-        for (var cliqueEntry in cliques.entries) {
-          sheet.appendRow([
-            TextCellValue(nome),
-            TextCellValue(cpf),
-            TextCellValue(nomesSessoesAmigaveis[sessaoId] ?? sessaoId),
-            TextCellValue(formatarItem(cliqueEntry.key)),
-            TextCellValue('${cliqueEntry.value}'),
-            TextCellValue('$vezesFinalizada'),
-          ]);
-        }
+    try {
+      return await action();
+    } finally {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
       }
     }
+  }
 
-    final directory = await getApplicationDocumentsDirectory();
-    final path = '${directory.path}/relatorio_mbrp.xlsx';
-    final file = File(path);
-    final fileBytes = excel.encode();
-    await file.writeAsBytes(fileBytes!);
+  Future<void> _logoutAndGoToLogin() async {
+    try {
+      await context.read<SuperuserController>().logout();
+    } catch (_) {
+      // best-effort
+    }
 
-    await Share.shareXFiles([XFile(path)], text: 'Relatório MBRP em Excel');
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainPage()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _exportExcel() async {
+    try {
+      final path = await _runWithLoading<String>(
+        message: 'Gerando Excel...',
+        action: () => context.read<SuperuserController>().exportarParaExcel(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Excel gerado. Arquivo: $path')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível exportar o Excel.')),
+      );
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    try {
+      final path = await _runWithLoading<String>(
+        message: 'Gerando CSV...',
+        action: () => context.read<SuperuserController>().exportarParaCsv(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CSV gerado. Arquivo: $path')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível exportar o CSV.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      appBar: AppBar(
-        title: const Text(
-          'Painel do Superusuário',
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 70, 148, 166)),
-        ),
-        backgroundColor: Color.fromARGB(0, 70, 148, 166),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: exportarParaExcel,
-            tooltip: 'Exportar para Excel',
-          ),
-            IconButton(
-              icon: const Icon(Icons.logout,
-                  color: Color.fromARGB(255, 0, 129, 71)),
-              onPressed: _logout,
-              tooltip: 'Sair',
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = screenWidth < 380 ? 16.0 : 24.0;
+
+    const primaryButtonColor = Color(0xFF60BFCD);
+    const accent = Color(0xFF10707E);
+
+    return AppScaffold(
+      body: AppBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 16,
             ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // FUNDO (imagem ou cor)
-          Positioned.fill(
-            child: Image.asset(
-              'assets/Registrar.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-
-          FutureBuilder<List<Map<String, dynamic>>>(
-              future: buscarUsuarios(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final usuarios = snapshot.data!;
-
-                return ListView.builder(
-                  itemCount: usuarios.length,
-                  itemBuilder: (context, index) {
-                    final usuario = usuarios[index];
-
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Painel do Administrador',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF202020),
+                        ),
                       ),
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      elevation: 4,
-                      color: const Color(0xFFEFF9F7), // tom claro de verde/azul
-                      child: Theme(
-                        data: Theme.of(context)
-                            .copyWith(dividerColor: Colors.transparent),
-                        child: ExpansionTile(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          collapsedShape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          tilePadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          title: Text(
-                            '${usuario['nome']} (${usuario['cpf']})',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          children: (usuario['sessoes'] as Map<String, dynamic>)
-                              .entries
-                              .map((sessaoEntry) {
-                            final sessaoId = sessaoEntry.key;
-                            final dadosSessao = sessaoEntry.value;
-                            final cliques =
-                                Map<String, int>.from(dadosSessao['cliques']);
+                    ),
+                    IconButton(
+                      onPressed: _logoutAndGoToLogin,
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Color(0xFF2F7888),
+                      ),
+                      tooltip: 'Sair',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                Container(
+                  constraints: const BoxConstraints(minHeight: 210),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    image: const DecorationImage(
+                      image: AssetImage('assets/back.png'),
+                      fit: BoxFit.cover,
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 380;
+                      final logoHeight = isNarrow ? 96.0 : 112.0;
 
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 2,
-                                margin: const EdgeInsets.symmetric(vertical: 6),
-                                child: Theme(
-                                  data: Theme.of(context).copyWith(
-                                      dividerColor: Colors.transparent),
-                                  child: ExpansionTile(
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
-                                    collapsedShape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
-                                    tilePadding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 10),
-                                    title: Text(
-                                      '${nomesSessoesAmigaveis[sessaoId] ?? sessaoId} - Finalizada ${dadosSessao['vezesFinalizada']}x',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.normal),
-                                    ),
-                                    children: cliques.entries.map((entry) {
-                                      return ListTile(
-                                        title: Text(formatarItem(entry.key)),
-                                        trailing: Text('${entry.value}x'),
-                                      );
-                                    }).toList(),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/logo.png',
+                                height: logoHeight,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Área administrativa\nMBRP',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF202020),
+                                    height: 1.15,
                                   ),
                                 ),
                               ),
-                            );
-                          }).toList(),
-                        ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Gerencie grupos e participantes e exporte relatórios.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.black.withOpacity(0.62),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: _exportExcel,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: accent,
+                                    side: BorderSide(
+                                      color: accent.withOpacity(0.55),
+                                    ),
+                                    backgroundColor: Colors.white,
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 11),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  child: const Text('Exportar Excel'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: _exportCsv,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: accent,
+                                    side: BorderSide(
+                                      color: accent.withOpacity(0.55),
+                                    ),
+                                    backgroundColor: Colors.white,
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 11),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  child: const Text('Exportar CSV'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                AppElevatedRowButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SuperuserGroupsScreen(),
                       ),
                     );
                   },
-                );
-              }),
-        ],
+                  icon: Icons.groups,
+                  iconColor: Colors.white,
+                  title: 'Grupos',
+                  titleStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  backgroundColor: primaryButtonColor,
+                  borderRadius: 16,
+                  elevation: 2,
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                  ),
+                ),
+                AppElevatedRowButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SuperuserParticipantsScreen(),
+                      ),
+                    );
+                  },
+                  icon: Icons.people_alt,
+                  iconColor: Colors.white,
+                  title: 'Participantes',
+                  titleStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  backgroundColor: primaryButtonColor,
+                  borderRadius: 16,
+                  elevation: 2,
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BlockingLoadingDialog extends StatelessWidget {
+  const _BlockingLoadingDialog({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.6),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,9 +1,17 @@
+import 'dart:async';
+
 import 'package:appser/compenents/decoration_authentication.dart';
-import 'package:appser/screens/home.dart';
-import 'package:appser/services/authetication_service.dart';
+import 'package:appser/core/theme/app_colors.dart';
+import 'package:appser/services/resetpassword.dart';
 import 'package:appser/snackbars/first_snack.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../presentation/controllers/auth_controller.dart';
+import '../presentation/controllers/auth_state_controller.dart';
+import 'register.dart';
 
 class Authentication extends StatefulWidget {
   const Authentication({super.key});
@@ -13,262 +21,364 @@ class Authentication extends StatefulWidget {
 }
 
 class _AuthenticationState extends State<Authentication> {
-  bool wantEnter = true;
-  String? _cpf;
-  final _formKey = GlobalKey<FormState>();
-  String? _password;
+  bool _rememberUser = false;
+
+  static const Color _loginErrorColor = Color(0xFFE57070);
+  String? _loginErrorMessage;
+  bool _emailLoginError = false;
+  bool _passwordLoginError = false;
+
+  void _clearLoginError() {
+    if (_loginErrorMessage == null && !_emailLoginError && !_passwordLoginError) {
+      return;
+    }
+    setState(() {
+      _loginErrorMessage = null;
+      _emailLoginError = false;
+      _passwordLoginError = false;
+    });
+  }
+
+  StreamSubscription<User?>? _authStateSubscription;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
 
-  bool _isValidCPF(String cpf) {
-    cpf = cpf.replaceAll(RegExp(r'[^0-9]'), '');
-    if (cpf.length != 11 || RegExp(r'^(\d)\1*$').hasMatch(cpf)) return false;
+  late final AuthController _authController;
 
-    int calcDigit(List<int> numbers, int multiplierStart) {
-      int sum = 0;
-      for (var i = 0; i < numbers.length; i++) {
-        sum += numbers[i] * (multiplierStart - i);
-      }
-      int mod = sum % 11;
-      return (mod < 2) ? 0 : 11 - mod;
-    }
-
-    List<int> digits = cpf.split('').map(int.parse).toList();
-    int d1 = calcDigit(digits.sublist(0, 9), 10);
-    int d2 = calcDigit(digits.sublist(0, 10), 11);
-    return d1 == digits[9] && d2 == digits[10];
-  }
-
-  final AutheticationService _authService = AutheticationService(FirebaseAuth.instance)
-;
+  static const _prefsRememberUserKey = 'auth_remember_user';
+  static const _prefsRememberEmailKey = 'auth_remember_email';
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 230, 253, 253),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Image.asset("assets/logo.png", height: 150),
-                  Text(
-                    (wantEnter) ? "LOGIN" : "CADASTRO",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 119, 199, 156),
+  void initState() {
+    super.initState();
+    unawaited(_loadRememberedUser());
+
+    _emailController.addListener(() {
+      if (_emailLoginError || _loginErrorMessage != null) _clearLoginError();
+    });
+    _passwordController.addListener(() {
+      if (_passwordLoginError || _loginErrorMessage != null) _clearLoginError();
+    });
+  }
+
+  void _setLoginError(String message) {
+    final lower = message.toLowerCase();
+    bool emailError = false;
+    bool passwordError = false;
+    String friendly;
+
+    if (lower.contains('senha')) {
+      passwordError = true;
+      friendly = 'Senha errada, tente novamente!';
+    } else if (lower.contains('e-mail') || lower.contains('email')) {
+      emailError = true;
+      friendly = 'E-mail errado, tente novamente!';
+    } else if (lower.contains('usuário') || lower.contains('usuario')) {
+      emailError = true;
+      friendly = 'E-mail errado, tente novamente!';
+    } else {
+      // Se não conseguimos identificar, destacamos ambos para o usuário conferir.
+      emailError = true;
+      passwordError = true;
+      friendly = 'E-mail e senha errados, tente novamente!';
+    }
+
+    setState(() {
+      _loginErrorMessage = friendly;
+      _emailLoginError = emailError;
+      _passwordLoginError = passwordError;
+    });
+  }
+
+  bool _validateLoginInputs() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    bool emailError = false;
+    bool passwordError = false;
+    String? message;
+
+    if (email.isEmpty || !email.contains('@')) {
+      emailError = true;
+    }
+
+    if (password.isEmpty || password.length < 6) {
+      passwordError = true;
+    }
+
+    if (emailError && passwordError) {
+      message = 'E-mail e senha errados, tente novamente!';
+    } else if (emailError) {
+      message = 'E-mail errado, tente novamente!';
+    } else if (passwordError) {
+      message = 'Senha errada, tente novamente!';
+    }
+
+    if (message == null) {
+      _clearLoginError();
+      return true;
+    }
+
+    setState(() {
+      _loginErrorMessage = message;
+      _emailLoginError = emailError;
+      _passwordLoginError = passwordError;
+    });
+    return false;
+  }
+
+  Future<void> _loadRememberedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final remember = prefs.getBool(_prefsRememberUserKey) ?? false;
+    final email = prefs.getString(_prefsRememberEmailKey) ?? '';
+
+    if (!mounted) return;
+    setState(() {
+      _rememberUser = remember;
+      if (remember && email.isNotEmpty) {
+        _emailController.text = email;
+      }
+    });
+  }
+
+  Future<void> _persistRememberedUser({required String email}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefsRememberUserKey, _rememberUser);
+    if (_rememberUser) {
+      await prefs.setString(_prefsRememberEmailKey, email);
+    } else {
+      await prefs.remove(_prefsRememberEmailKey);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _authController = context.read<AuthController>();
+  }
+
+  @override
+  void dispose() {
+    _authStateSubscription?.cancel();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: AppColors.appBackground,
+    body: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 40),
+
+                // LOGO
+                Center(
+                  child: Image.asset(
+                    "assets/logo.png",
+                    height: 170,
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // EMAIL
+                TextFormField(
+                  controller: _emailController,
+                  decoration: getAuthenticationInputDecoration(
+                    "E-mail",
+                    borderColor:
+                        _emailLoginError ? _loginErrorColor : const Color(0xFFD5D5D5),
+                  ),
+                  style: TextStyle(
+                    color: _emailLoginError ? _loginErrorColor : const Color(0xFF232323),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // SENHA
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: getAuthenticationInputDecoration(
+                    "Senha",
+                    borderColor: _passwordLoginError
+                        ? _loginErrorColor
+                        : const Color(0xFFD5D5D5),
+                  ),
+                  obscureText: true,
+                  style: TextStyle(
+                    color: _passwordLoginError ? _loginErrorColor : const Color(0xFF232323),
+                  ),
+                ),
+
+              if (_loginErrorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      _loginErrorMessage!,
+                      textAlign: TextAlign.right,
+                      maxLines: 3,
+                      overflow: TextOverflow.clip,
+                      style: const TextStyle(
+                        color: _loginErrorColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                  const SizedBox(
-                    height: 32,
-                  ),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: getAuthenticationInputDecoration("E-mail"),
-                    validator: (String? value) {
-                      if (value == null || value.isEmpty) {
-                        return "Por favor, digite seu e-mail";
-                      }
-                      if (value.length < 6) {
-                        return "E-mail inválido";
-                      }
-                      if (!value.contains("@")) {
-                        return "E-mail inválido";
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      _password = value;
-                    },
-                  ),
-                  const SizedBox(
-                    height: 12,
-                  ),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: getAuthenticationInputDecoration("Senha"),
-                    obscureText: true,
-                    validator: (String? value) {
-                      if (value == null || value.isEmpty) {
-                        return "Por favor, digite sua senha";
-                      }
-                      if (value.length < 6) {
-                        return "A senha precisa twr pelo menos 6 caracteres";
-                      }
+                ),
 
-                      return null;
-                    },
-                    onChanged: (value) {
-                      _password = value;
-                    },
+                const SizedBox(height: 8),
+
+                // LEMBRAR USUÁRIO
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberUser,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberUser = value ?? false;
+                        });
+                      },
+                      activeColor: const Color(0xFF60BFCD),
+                    ),
+                    const Text(
+                      "Lembrar usuário",
+                      style: TextStyle(
+                        color: Color(0xFF232323),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // BOTÃO ENTRAR
+                Align(
+                  alignment: Alignment.center,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.60,
+                    child: ElevatedButton(
+                      onPressed: buttonClick,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF60BFCD),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Entrar",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
-                  Visibility(
-                    visible: !wantEnter,
-                    child: Column(
+                ),
+
+                const SizedBox(height: 20),
+
+                // ESQUECI MINHA SENHA
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PasswordRecoveryScreen(),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF232323),
+                    ),
+                    child: const Text("Esqueci minha senha"),
+                  ),
+                ),
+
+                const SizedBox(height: 50),
+
+                // CRIAR CONTA
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const RegisterScreen(),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.authLink,
+                  ),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: const TextSpan(
+                      style: TextStyle(
+                        color: Color(0xFF232323),
+                        height: 1.3,
+                      ),
                       children: [
-                        const SizedBox(
-                          height: 12,
+                        TextSpan(text: 'Você não tem cadastro?\n'),
+                        TextSpan(
+                          text: 'Crie uma conta aqui',
+                          style: TextStyle(
+                            color: AppColors.authLink,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
-                        TextFormField(
-                          decoration: getAuthenticationInputDecoration(
-                              "Confirmar Senha"),
-                          obscureText: true,
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return "Por favor, digite sua senha";
-                            }
-                            if (!(value.toString() == _password.toString())) {
-                              return "As senhas não coincidem";
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(
-                          height: 12,
-                        ),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: getAuthenticationInputDecoration("Nome"),
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return "Por favor, digite seu nome";
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(
-                          height: 12,
-                        ),
-                        TextFormField(
-                          decoration: getAuthenticationInputDecoration("CPF"),
-                          keyboardType: TextInputType.number,
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return "Por favor, digite seu CPF";
-                            }
-                            if (!_isValidCPF(value)) {
-                              return "CPF inválido";
-                            }
-                            return null;
-                          },
-                          onChanged: (value) {
-                            _cpf = value;
-                          },
-                        ),
-                        const SizedBox(height: 12),
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      buttonClick();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF77C79C), // Cor de fundo
-                      foregroundColor: const Color(0xFF293738), // Cor do texto
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      (wantEnter) ? "Entrar" : "Registrar",
-                      style: const TextStyle(
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 32,
-                  ),
-                  const Divider(),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        wantEnter = !wantEnter;
-                      });
-                    },
-                    child: Text(
-                      (wantEnter)
-                          ? "Você não tem cadastro? Crie uma conta aqui!"
-                          : "Já tem conta? Entre aqui!",
-                      style: const TextStyle(
-                        color: Color(0xFF293738),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  buttonClick() {
-    String email = _emailController.text;
-    String password = _passwordController.text;
-    String name = _nameController.text;
+  buttonClick() async {
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
 
-    if (_formKey.currentState!.validate()) {
-      if (wantEnter) {
-        _authService.loginUser(email: email, password: password).then((String? erro) {
-  if (erro == null) {
-    showSnackBar(context: context, message: "Usuário logado com sucesso!", isError: false);
-    print("Usuário autenticado: ${FirebaseAuth.instance.currentUser?.email}");
-    setState(() {});
+    if (!_validateLoginInputs()) return;
 
-    // 🔄 Força o stream a emitir novamente (ajuda o RouterScreen a reagir)
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      print("Novo estado de auth (listen): ${user?.email}");
-    });
-  
-
-
-            //RouterScreen().build(context); // Navegue para a tela inicial após o login
-
-            // NÃO navegue, apenas aguarde o Firebase notificar o StreamBuilder
-            print(
-                "Usuário autenticado: ${FirebaseAuth.instance.currentUser?.email}");
-          }
-        });
-      } else {
-        print(
-            "${_emailController.text} - ${_passwordController.text} - ${_nameController.text}");
-        _authService
-            .registerUser(
-          email: email,
-          password: password,
-          name: name,
-          cpf: _cpf!,
-        )
-            .then((String? erro) {
-          if (erro == null) {
-            showSnackBar(
-                context: context,
-                message: "Usuário cadastrado com sucesso!",
-                isError: false);
-          } else {
-            showSnackBar(context: context, message: erro);
-          }
-        });
-      }
+    // LOGIN
+    String? erro = await _authController.login(email: email, password: password);
+    if (erro == null) {
+      await _persistRememberedUser(email: email);
+      showSnackBar(
+          context: context,
+          message: "Usuário logado com sucesso!",
+          isError: false);
+      setState(() {});
+      final authStateController = context.read<AuthStateController>();
+      await _authStateSubscription?.cancel();
+      _authStateSubscription =
+          authStateController.authStateChanges.listen((user) {
+        print("Novo estado de auth (listen): ${user?.email}");
+        if (!mounted) return;
+        setState(() {});
+      });
+    } else {
+      _setLoginError(erro);
     }
   }
 }
-
-

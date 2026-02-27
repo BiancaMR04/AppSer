@@ -1,25 +1,43 @@
 import 'package:flutter/material.dart';
 
-InputDecoration getAuthenticationInputDecoration(String label) {
-  return InputDecoration( 
-    labelText: label,  
-    labelStyle: const TextStyle(
-      color: Color.fromARGB(255, 142, 142, 142), 
-      fontSize: 16, 
-      fontFamily: 'Poppins',
-    ),
-    fillColor: const Color.fromARGB(255, 235, 255, 254),
+
+InputDecoration getAuthenticationInputDecoration(
+  String label, {
+  Color borderColor = const Color(0xFFD5D5D5),
+}) {
+  final border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(12),
+    borderSide: BorderSide(color: borderColor),
+  );
+
+  return InputDecoration(
+    labelText: label,
     filled: true,
-    contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+    fillColor: Colors.white, // Fundo #FFFFFF
+    labelStyle: const TextStyle(
+      color: Color(0xFF232323), // Cor do texto
     ),
-    enabledBorder: const OutlineInputBorder(
-      borderSide: BorderSide(color: Color.fromARGB(255, 142, 142, 142), width: 0.5), 
+    border: border,
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderColor),
     ),
-    focusedBorder: const OutlineInputBorder(
-      borderSide: BorderSide(color: Color.fromARGB(255, 119, 199, 156), width: 2),
+    disabledBorder: border,
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderColor, width: 1.5),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderColor),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: borderColor, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 14,
     ),
   );
 }
-

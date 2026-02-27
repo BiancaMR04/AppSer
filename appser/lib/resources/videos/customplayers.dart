@@ -18,10 +18,6 @@ class _CustomControlsState extends State<CustomControls> {
   Widget build(BuildContext context) {
     final chewieController = ChewieController.of(context);
 
-    if (chewieController == null) {
-      return const SizedBox();
-    }
-
     // Iniciar o timer para esconder controles automaticamente quando o vídeo começa a tocar
     if (chewieController.isPlaying) {
       _startHideControlsTimer();
