@@ -8,6 +8,7 @@ import 'package:appser/sessions/session_hub_screen.dart';
 import 'package:appser/stateChanges.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:appser/presentation/controllers/home_controller.dart';
 
@@ -241,6 +242,30 @@ class AppBottomNavBar extends StatelessWidget {
       final effectiveIconScale = iconScale ?? _iconScale;
       final effectiveIconHeight = iconHeight ?? _iconHeight;
 
+      Widget iconWidget() {
+        final normalized = assetPath.toLowerCase();
+        if (normalized.endsWith('.svg')) {
+          return SvgPicture.asset(
+            assetPath,
+            height: effectiveIconHeight,
+            width: effectiveIconHeight,
+            fit: BoxFit.contain,
+            colorFilter: iconColor == null
+                ? null
+                : ColorFilter.mode(iconColor, BlendMode.srcIn),
+          );
+        }
+
+        return Image.asset(
+          assetPath,
+          height: effectiveIconHeight,
+          width: effectiveIconHeight,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          color: iconColor,
+        );
+      }
+
       return SizedBox(
         width: _itemWidth,
         child: InkWell(
@@ -252,14 +277,7 @@ class AppBottomNavBar extends StatelessWidget {
               children: [
                 Transform.scale(
                   scale: effectiveIconScale,
-                  child: Image.asset(
-                    assetPath,
-                    height: effectiveIconHeight,
-                    width: effectiveIconHeight,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                    color: iconColor,
-                  ),
+                  child: iconWidget(),
                 ),
                 const SizedBox(height: 2),
                 Text(label, style: labelStyle),
@@ -293,9 +311,11 @@ class AppBottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               navItem(
-                assetPath: 'assets/casa.png',
+                assetPath: 'assets/casa.svg',
                 label: 'Home',
-                iconScale: 0.95,
+                iconScale: 0.92,
+                iconHeight: 22,
+                iconColor: const Color(0xFF60BFCD),
                 onTap: () {
                   if (_currentRouteName(context) == _homeRouteName) {
                     return;
@@ -305,15 +325,18 @@ class AppBottomNavBar extends StatelessWidget {
               ),
               const SizedBox(width: _itemGap),
               navItem(
-                assetPath: 'assets/folha.png',
+                assetPath: 'assets/folha.svg',
                 label: 'Sessões',
+                iconScale: 0.92,
+                iconHeight: 22,
+                iconColor: const Color(0xFF60BFCD),
                 onTap: () {
                   _openSessionsModal(context);
                 },
               ),
               const SizedBox(width: _itemGap),
               navItem(
-                assetPath: 'assets/livrof.png',
+                assetPath: 'assets/ajuda.svg',
                 label: 'Ajuda',
                 iconScale: 0.95,
                 iconColor: const Color(0xFF60BFCD),

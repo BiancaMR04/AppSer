@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/navigation/app_route_observer.dart';
 import 'audio/app_audio_service.dart';
 import 'data/datasources/user_sessions_firestore_datasource.dart';
 import 'data/datasources/password_recovery_firebase_auth_datasource.dart';
@@ -202,6 +203,7 @@ class MainApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: AppTheme.build(),
+            navigatorObservers: [appRouteObserver],
             home: const MainPage(),
           );
         },

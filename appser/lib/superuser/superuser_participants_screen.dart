@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:appser/core/theme/app_colors.dart';
 import 'package:appser/presentation/widgets/app_background.dart';
@@ -19,6 +20,14 @@ class SuperuserParticipantsScreen extends StatefulWidget {
 
 class _SuperuserParticipantsScreenState extends State<SuperuserParticipantsScreen> {
   late Future<List<Map<String, dynamic>>> _usuariosFuture;
+
+  Rect? _shareOriginRect() {
+    final renderObject = context.findRenderObject();
+    if (renderObject is RenderBox) {
+      return renderObject.localToGlobal(Offset.zero) & renderObject.size;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -123,6 +132,16 @@ class _SuperuserParticipantsScreenState extends State<SuperuserParticipantsScree
         const SnackBar(content: Text('Não foi possível exportar o CSV.')),
       );
       return;
+    }
+
+    try {
+      await Share.shareXFiles(
+        [XFile(path)],
+        text: 'Relatório MBRP (CSV)',
+        sharePositionOrigin: _shareOriginRect(),
+      );
+    } catch (_) {
+      // Se o share falhar, ainda mostramos o caminho do arquivo.
     }
 
     ScaffoldMessenger.of(context).showSnackBar(

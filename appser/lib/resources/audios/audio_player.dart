@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:appser/core/navigation/app_route_observer.dart';
 import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
@@ -36,7 +37,7 @@ class AudioPlayerScreen extends StatefulWidget {
   State<AudioPlayerScreen> createState() => _AudioPlayerScreenState();
 }
 
-class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
+class _AudioPlayerScreenState extends State<AudioPlayerScreen> with RouteAware {
   AppAudioHandler get _handler => appAudioHandler;
   Stream<Duration?> get _durationStream => _handler.mediaItem
       .map((item) => item?.duration)
@@ -49,6 +50,8 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   late final StreamSubscription<Duration> _positionSub;
   late final StreamSubscription<Duration?> _durationSub;
   late final StreamSubscription<PlaybackState> _playbackSub;
+
+  bool _didStopBecauseLeftScreen = false;
 
   @override
   void initState() {
@@ -72,6 +75,61 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       }
     });
     _loadAudio();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic>) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  void _logPartialIfNeeded() {
+    if (_didStopBecauseLeftScreen) return;
+
+    final sessaoId = widget.sessaoId;
+    final itemId = widget.itemId;
+    if (sessaoId == null || itemId == null) return;
+
+    final playback = _lastPlaybackState;
+    final isCompleted =
+        playback?.processingState == AudioProcessingState.completed;
+    if (isCompleted) return;
+    if (_lastPositionSeconds <= 0) return;
+
+    _didStopBecauseLeftScreen = true;
+    UserTrackingService.registrarTarefaParcial(
+      sessaoId: sessaoId,
+      tipo: 'audio',
+      itemId: itemId,
+      isSupplementary: widget.isSupplementary,
+      positionSeconds: _lastPositionSeconds,
+      durationSeconds: _lastDurationSeconds,
+      title: widget.audioTitle,
+      path: widget.audioPath,
+    );
+  }
+
+  void _pauseBecauseLeavingScreen() {
+    // Requisito: ao sair da tela, parar o áudio.
+    // Não usa lifecycle (bloquear celular não deve parar).
+    _logPartialIfNeeded();
+
+    final playing = _handler.playbackState.value.playing;
+    if (!playing) return;
+    try {
+      _handler.pause();
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  @override
+  void didPushNext() {
+    // Outra tela abriu por cima desta.
+    _pauseBecauseLeavingScreen();
   }
 
   Future<void> _logComplete() async {
@@ -111,27 +169,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
 
   @override
   void dispose() {
-    final sessaoId = widget.sessaoId;
-    final itemId = widget.itemId;
-    final playback = _lastPlaybackState;
-    final isPlaying = playback?.playing ?? false;
-    final isCompleted =
-        playback?.processingState == AudioProcessingState.completed;
+    appRouteObserver.unsubscribe(this);
 
-    if (!isCompleted && !isPlaying) {
-      if (sessaoId != null && itemId != null && _lastPositionSeconds > 0) {
-        UserTrackingService.registrarTarefaParcial(
-          sessaoId: sessaoId,
-          tipo: 'audio',
-          itemId: itemId,
-          isSupplementary: widget.isSupplementary,
-          positionSeconds: _lastPositionSeconds,
-          durationSeconds: _lastDurationSeconds,
-          title: widget.audioTitle,
-          path: widget.audioPath,
-        );
-      }
-    }
+    // Se a tela foi fechada (back), também pausa.
+    _pauseBecauseLeavingScreen();
 
     _positionSub.cancel();
     _durationSub.cancel();
@@ -373,7 +414,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                                 Text(
                                   _formatDuration(duration),
                                   style: const TextStyle(
-                                    color: Color(0xFF2F7888),
+                                    color: Color(0xFFC7CBCC),
                                   ),
                                 ),
                               ],

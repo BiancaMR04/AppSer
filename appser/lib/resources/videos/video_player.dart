@@ -4,6 +4,7 @@ import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 
@@ -218,6 +219,32 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _videoPlayerController.seekTo(clamped);
   }
 
+  void _togglePlayPause() {
+    if (!_hasController || !_videoPlayerController.value.isInitialized) {
+      return;
+    }
+
+    if (_videoPlayerController.value.isPlaying) {
+      _videoPlayerController.pause();
+    } else {
+      _videoPlayerController.play();
+    }
+  }
+
+  Future<void> _openFullscreen() async {
+    if (!_hasController || !_videoPlayerController.value.isInitialized) {
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _FullscreenVideoPlayerRoute(
+          controller: _videoPlayerController,
+        ),
+      ),
+    );
+  }
+
   Widget _buildControls({required double width}) {
     if (!_hasController) {
       return const SizedBox.shrink();
@@ -311,6 +338,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     size: sideButtonSize,
                     iconSize: sideIconSize,
                   ),
+                  const SizedBox(width: 10),
+                  roundIconButton(
+                    onTap: isInitialized ? _openFullscreen : null,
+                    icon: Icons.fullscreen,
+                    size: sideButtonSize,
+                    iconSize: sideIconSize,
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -355,7 +389,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     Text(
                       _formatDuration(duration),
                       style: const TextStyle(
-                        color: _controlsColor,
+                        color: Color(0xFFC7CBCC),
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -383,7 +417,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       body: AppBackground(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const targetAspectRatio = 4 / 5; // estilo post do Instagram
             const borderRadius = 18.0;
             const horizontalPadding = 12.0;
             const controlsHeight = 156.0;
@@ -391,6 +424,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             const titleTopGap = 26.0;
             const titleBottomGap = 10.0;
             const videoToControlsGap = 10.0;
+
+            final isReady =
+                _hasController && _videoPlayerController.value.isInitialized;
+
+            final videoAspectRaw = isReady
+                ? _videoPlayerController.value.aspectRatio
+                : (16 / 9);
+            final targetAspectRatio =
+                (videoAspectRaw.isFinite && videoAspectRaw > 0)
+                    ? videoAspectRaw
+                    : (16 / 9);
 
             final verticalBias = showTitleAboveVideo
                 ? -0.06 // desce mais pra dar respiro abaixo da navbar
@@ -420,20 +464,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               playerHeight = maxPlayerHeight;
               playerWidth = playerHeight * targetAspectRatio;
             }
-
-            final isReady =
-                _hasController && _videoPlayerController.value.isInitialized;
-
-            final coverScale = isReady
-                ? () {
-                    final videoAspect =
-                        _videoPlayerController.value.aspectRatio; // w / h
-                    final scale = (videoAspect / targetAspectRatio).abs();
-                    final inverseScale =
-                        (targetAspectRatio / videoAspect).abs();
-                    return scale > inverseScale ? scale : inverseScale;
-                  }()
-                : 1.0;
 
             return Align(
               alignment: Alignment(0, verticalBias),
@@ -466,16 +496,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       child: DecoratedBox(
                         decoration: const BoxDecoration(color: Colors.black),
                         child: isReady
-                            ? ClipRect(
-                                child: Transform.scale(
-                                  scale: coverScale,
-                                  child: Center(
-                                    child: AspectRatio(
-                                      aspectRatio: _videoPlayerController
-                                          .value.aspectRatio,
-                                      child:
-                                          VideoPlayer(_videoPlayerController),
-                                    ),
+                            ? GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _togglePlayPause,
+                                child: Center(
+                                  child: AspectRatio(
+                                    aspectRatio: targetAspectRatio,
+                                    child:
+                                        VideoPlayer(_videoPlayerController),
                                   ),
                                 ),
                               )
@@ -494,6 +522,83 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         ),
       ),
       bottomNavigationBar: const AppBottomNavBar(),
+    );
+  }
+}
+
+class _FullscreenVideoPlayerRoute extends StatefulWidget {
+  final VideoPlayerController controller;
+
+  const _FullscreenVideoPlayerRoute({required this.controller});
+
+  @override
+  State<_FullscreenVideoPlayerRoute> createState() =>
+      _FullscreenVideoPlayerRouteState();
+}
+
+class _FullscreenVideoPlayerRouteState extends State<_FullscreenVideoPlayerRoute> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  void _togglePlayPause() {
+    final value = widget.controller.value;
+    if (!value.isInitialized) return;
+    if (value.isPlaying) {
+      widget.controller.pause();
+    } else {
+      widget.controller.play();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _togglePlayPause,
+          child: Stack(
+            children: [
+              Center(
+                child: ValueListenableBuilder<VideoPlayerValue>(
+                  valueListenable: widget.controller,
+                  builder: (context, value, child) {
+                    final raw = value.isInitialized ? value.aspectRatio : 16 / 9;
+                    final aspectRatio = (raw.isFinite && raw > 0) ? raw : 16 / 9;
+
+                    if (!value.isInitialized) {
+                      return const CircularProgressIndicator();
+                    }
+
+                    return AspectRatio(
+                      aspectRatio: aspectRatio,
+                      child: VideoPlayer(widget.controller),
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

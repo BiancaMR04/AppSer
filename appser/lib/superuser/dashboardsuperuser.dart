@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
@@ -18,6 +19,22 @@ class SuperuserDashboard extends StatefulWidget {
 }
 
 class _SuperuserDashboardState extends State<SuperuserDashboard> {
+  Rect? _shareOriginRect() {
+    final renderObject = context.findRenderObject();
+    if (renderObject is RenderBox) {
+      return renderObject.localToGlobal(Offset.zero) & renderObject.size;
+    }
+    return null;
+  }
+
+  Future<void> _shareFile({required String path, required String text}) async {
+    await Share.shareXFiles(
+      [XFile(path)],
+      text: text,
+      sharePositionOrigin: _shareOriginRect(),
+    );
+  }
+
   Future<T> _runWithLoading<T>({
     required String message,
     required Future<T> Function() action,
@@ -59,6 +76,9 @@ class _SuperuserDashboardState extends State<SuperuserDashboard> {
         message: 'Gerando Excel...',
         action: () => context.read<SuperuserController>().exportarParaExcel(),
       );
+
+      if (!mounted) return;
+      await _shareFile(path: path, text: 'Relatório MBRP em Excel');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Excel gerado. Arquivo: $path')),
@@ -77,6 +97,9 @@ class _SuperuserDashboardState extends State<SuperuserDashboard> {
         message: 'Gerando CSV...',
         action: () => context.read<SuperuserController>().exportarParaCsv(),
       );
+
+      if (!mounted) return;
+      await _shareFile(path: path, text: 'Relatório MBRP (CSV)');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('CSV gerado. Arquivo: $path')),

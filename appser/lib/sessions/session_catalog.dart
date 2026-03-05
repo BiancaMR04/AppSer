@@ -86,12 +86,12 @@ class SessionCatalog {
         viewerTitle: 'O que é Mindfulness',
       ),
       SessionContentItem(
-        title: '5. Posturas copy',
+        title: '5. Posturas',
         duration: '7:59',
         type: SessionContentType.video,
         itemId: 'posturas_copy',
         path: 'videos/sessaoum/videosposturaum.mp4',
-        viewerTitle: 'Posturas copy',
+        viewerTitle: 'Posturas',
       ),
       SessionContentItem(
         title: '6. Escaneamento corporal',
@@ -271,12 +271,12 @@ class SessionCatalog {
         viewerTitle: 'Consciência do Ver',
       ),
       SessionContentItem(
-        title: '3. Meditação Sentada',
+        title: '3. Meditação Sentada: 4 Estágios',
         duration: '20:52',
         type: SessionContentType.audio,
         itemId: 'meditacao_sentada',
         path: 'audios/sessaoquatro/meditacaosentadaquatro.mp3',
-        viewerTitle: 'Meditação Sentada',
+        viewerTitle: 'Meditação Sentada: 4 Estágios',
       ),
       SessionContentItem(
         title: '4. Lista de gatilhos',
@@ -330,12 +330,12 @@ class SessionCatalog {
         viewerTitle: 'Check-in',
       ),
       SessionContentItem(
-        title: '2. Meditação Sentada',
+        title: '2. Meditação Sentada: 5 Estágios',
         duration: '16:12',
         type: SessionContentType.audio,
         itemId: 'meditacao_sentada',
         path: 'audios/sessaocinco/meditacaosentadacinco.mp3',
-        viewerTitle: 'Meditação Sentada',
+        viewerTitle: 'Meditação Sentada: 5 Estágios',
       ),
       SessionContentItem(
         title: '3. Poema "A Casa de Hóspedes"',
@@ -363,12 +363,12 @@ class SessionCatalog {
         viewerTitle: 'Revendo os Cinco desafios da Sessão 2',
       ),
       SessionContentItem(
-        title: '6. Movimentos Copy',
+        title: '6. Movimentos',
         duration: '8:01',
         type: SessionContentType.video,
         itemId: 'movimentos_copy',
         path: 'videos/sessaocinco/movimentoscinco.mp4',
-        viewerTitle: 'Movimentos Copy',
+        viewerTitle: 'Movimentos',
       ),
       SessionContentItem(
         title: '7. Movimentos Mindfulness',
@@ -571,22 +571,22 @@ class SessionCatalog {
   static const Map<int, List<SessionMaterialItem>> _materialItemsBySession = {
     1: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 1',
-        pdfPath: 'docs/materiaisum/apostilasersessaoum.docx.pdf',
-        downloadPath: 'docs/materiaisum/apostilasersessaoum.docx',
-        pdfTitle: 'Apostila Ser Sessão 1',
+        title: 'Folheto Ser Sessão 1',
+        pdfPath: 'docs/materiaisum/apostilasersessaoum.html',
+        downloadPath: 'docs/materiaisum/apostilasersessaoum.html',
+        pdfTitle: 'Folheto Ser Sessão 1',
       ),
       SessionMaterialItem(
-        title: 'Mindfulness copy',
-        pdfPath: 'docs/materiaisum/mindfulnesscopyum.pdf',
-        downloadPath: 'docs/materiaisum/mindfulnesscopyum.pdf',
-        pdfTitle: 'Mindfulness copy',
+        title: 'Mindfulness',
+        pdfPath: 'docs/materiaisum/mindfulnesscopyum.png',
+        downloadPath: 'docs/materiaisum/mindfulnesscopyum.png',
+        pdfTitle: 'Mindfulness',
       ),
       SessionMaterialItem(
-        title: 'Postura Deitada',
-        pdfPath: 'docs/materiaisum/posturadeitadaum.pdf',
-        downloadPath: 'docs/materiaisum/posturadeitadaum.pdf',
-        pdfTitle: 'Postura Deitada',
+        title: 'Escaneamento corporal',
+        pdfPath: 'docs/materiaisum/primeirap.png',
+        downloadPath: 'docs/materiaisum/primeirap.png',
+        pdfTitle: 'POSIÇÕES DEITADA\nEscaneamento corporal',
       ),
       SessionMaterialItem(
         title: 'Apresentação Sessão 1',
@@ -597,10 +597,10 @@ class SessionCatalog {
     ],
     2: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 2',
+        title: 'Folheto Ser Sessão 2',
         pdfPath: 'docs/materiaisdois/apostilasersessaodois.pdf',
         downloadPath: 'docs/materiaisdois/apostilasersessaodois.docx',
-        pdfTitle: 'Apostila Ser Sessão 2',
+        pdfTitle: 'Folheto Ser Sessão 2',
       ),
       SessionMaterialItem(
         title: 'Posturas Sentada',
@@ -617,10 +617,10 @@ class SessionCatalog {
     ],
     3: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 3',
+        title: 'Folheto Ser Sessão 3',
         pdfPath: 'docs/materiaistres/apostilasersessaotres.pdf',
         downloadPath: 'docs/materiaistres/apostilasersessaotres.docx',
-        pdfTitle: 'Apostila Ser Sessão 3',
+        pdfTitle: 'Folheto Ser Sessão 3',
       ),
       SessionMaterialItem(
         title: 'Apresentação Sessão 3',
@@ -631,10 +631,10 @@ class SessionCatalog {
     ],
     4: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 4',
+        title: 'Folheto Ser Sessão 4',
         pdfPath: 'docs/materiaisquatro/apostilasersessaoquatro.pdf',
         downloadPath: 'docs/materiaisquatro/apostilasersessaoquatro.docx',
-        pdfTitle: 'Apostila Ser Sessão 4',
+        pdfTitle: 'Folheto Ser Sessão 4',
       ),
       SessionMaterialItem(
         title: 'Lista de Necessidades',
@@ -651,10 +651,10 @@ class SessionCatalog {
     ],
     5: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 5',
+        title: 'Folheto Ser Sessão 5',
         pdfPath: 'docs/materiaiscinco/apostilaserssaocinco.pdf',
         downloadPath: 'docs/materiaiscinco/apostilasersessaocinco.docx',
-        pdfTitle: 'Apostila Ser Sessão 5',
+        pdfTitle: 'Folheto Ser Sessão 5',
       ),
       SessionMaterialItem(
         title: 'Lista de Sentimentos',
@@ -671,16 +671,10 @@ class SessionCatalog {
     ],
     6: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 6',
+        title: 'Folheto Ser Sessão 6',
         pdfPath: 'docs/materiaisseis/apostilasessaoseis.pdf',
         downloadPath: 'docs/materiaisseis/apostilasessaoseis.docx',
-        pdfTitle: 'Apostila Ser Sessão 6',
-      ),
-      SessionMaterialItem(
-        title: 'Preencher próxima sessão',
-        pdfPath: 'docs/materiaisseis/preencherproximaseis.pdf',
-        downloadPath: 'docs/materiaisseis/preencherproximaseis.docx',
-        pdfTitle: 'Preencher próxima sessão',
+        pdfTitle: 'Folheto Ser Sessão 6',
       ),
       SessionMaterialItem(
         title: 'Apresentação Sessão 6',
@@ -691,10 +685,10 @@ class SessionCatalog {
     ],
     7: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 7',
+        title: 'Folheto Ser Sessão 7',
         pdfPath: 'docs/materiaissete/apostilasessaosete.pdf',
         downloadPath: 'docs/materiaissete/apostilasessaosete.docx',
-        pdfTitle: 'Apostila Ser Sessão 7',
+        pdfTitle: 'Folheto Ser Sessão 7',
       ),
       SessionMaterialItem(
         title: 'Preencher na sessão',
@@ -711,10 +705,10 @@ class SessionCatalog {
     ],
     8: [
       SessionMaterialItem(
-        title: 'Apostila Ser Sessão 8',
+        title: 'Folheto Ser Sessão 8',
         pdfPath: 'docs/materiaisum/apostilasessaooito.pdf',
         downloadPath: 'docs/materiaisum/apostilasessaooito.docx',
-        pdfTitle: 'Apostila Ser Sessão 8',
+        pdfTitle: 'Folheto Ser Sessão 8',
       ),
       SessionMaterialItem(
         title: 'Apresentação Sessão 8',

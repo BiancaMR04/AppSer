@@ -2,16 +2,47 @@ import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:appser/resources/audios/audio_player.dart';
+import 'package:appser/resources/docs/inline_text_view.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
 import 'package:appser/screens/user_tracking_service.dart';
 import 'package:appser/services/practice_resume_service.dart';
 import 'package:appser/sessions/session_catalog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:appser/core/theme/app_colors.dart';
 import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
 import 'package:appser/sessions/widgets/session_header.dart';
+
+Widget _assetIcon(
+  String assetPath, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.contain,
+  Color? color,
+}) {
+  final normalized = assetPath.toLowerCase();
+  if (normalized.endsWith('.svg')) {
+    return SvgPicture.asset(
+      assetPath,
+      width: width,
+      height: height,
+      fit: fit,
+      colorFilter:
+          color == null ? null : ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+
+  return Image.asset(
+    assetPath,
+    width: width,
+    height: height,
+    fit: fit,
+    filterQuality: FilterQuality.high,
+    color: color,
+  );
+}
 
 class SessionContentScreen extends StatelessWidget {
   final int sessionNumber;
@@ -32,9 +63,9 @@ class SessionContentScreen extends StatelessWidget {
     String iconAssetFor(SessionContentItem item) {
       switch (item.type) {
         case SessionContentType.audio:
-          return 'assets/som.png';
+          return 'assets/som.svg';
         case SessionContentType.video:
-          return 'assets/video.png';
+          return 'assets/video.svg';
         case SessionContentType.pdf:
           if (item.itemId == 'praticando_em_casa') return 'assets/pessoam.png';
           return 'assets/livro.png';
@@ -42,7 +73,7 @@ class SessionContentScreen extends StatelessWidget {
     }
 
     return AppScaffold(
-      backgroundColor: const Color.fromARGB(255, 234, 242, 242),
+      backgroundColor: Colors.white,
       appBar: AppBackAppBar(titleText: 'Sessão $sessionNumber'),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -73,10 +104,16 @@ class SessionContentScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   child: ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, thickness: 1, color: dividerColor),
+                    separatorBuilder: (_, __) => const Divider(
+                        height: 1, thickness: 1, color: dividerColor),
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      final iconColor = switch (item.type) {
+                        SessionContentType.audio => const Color(0xFF2F7888),
+                        SessionContentType.video => const Color(0xFF2F7888),
+                        SessionContentType.pdf => null,
+                      };
+
                       return Material(
                         color: Colors.white,
                         child: InkWell(
@@ -113,20 +150,43 @@ class SessionContentScreen extends StatelessWidget {
                                 );
                                 break;
                               case SessionContentType.pdf:
-                                destination = PdfViewerScreen(
-                                  pdfPath: item.path,
-                                  downloadPath: item.downloadPath ?? item.path,
-                                  pdfTitle: item.viewerTitle,
-                                  sessaoId: sessionId,
-                                  itemId: item.itemId,
-                                  isSupplementary: false,
-                                );
+                                if (sessionNumber == 1 &&
+                                    item.itemId == 'praticando_em_casa') {
+                                  destination = const InlineTextViewerScreen(
+                                    title: 'Praticando em Casa',
+                                    text:
+                                        'PRATICANDO EM CASA DA SEGUINTE FORMA\n'
+                                        'Momentos para reflexão\n'
+                                        '- Lendo a apostila\n'
+                                        '- Completando a planilha\n'
+                                        '\n'
+                                        'Momentos para experiência\n'
+                                        '- Trazendo mindfulness para a vida diária (refeições)\n'
+                                        '- Praticando escaneamento corporal 1x ao dia\n'
+                                        '\n'
+                                        'Próxima semana: trazer 5 livros (tamanhos variados)',
+                                    sessaoId: 'sessao_1',
+                                    itemId: 'praticando_em_casa',
+                                    isSupplementary: false,
+                                  );
+                                } else {
+                                  destination = PdfViewerScreen(
+                                    pdfPath: item.path,
+                                    downloadPath:
+                                        item.downloadPath ?? item.path,
+                                    pdfTitle: item.viewerTitle,
+                                    sessaoId: sessionId,
+                                    itemId: item.itemId,
+                                    isSupplementary: false,
+                                  );
+                                }
                                 break;
                             }
 
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => destination),
+                              MaterialPageRoute(
+                                  builder: (context) => destination),
                             );
                           },
                           child: Padding(
@@ -136,11 +196,11 @@ class SessionContentScreen extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                Image.asset(
+                                _assetIcon(
                                   iconAssetFor(item),
                                   width: 22,
                                   height: 22,
-                                  fit: BoxFit.contain,
+                                  color: iconColor,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(

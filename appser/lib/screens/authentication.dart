@@ -93,7 +93,16 @@ class _AuthenticationState extends State<Authentication> {
 
   bool _validateLoginInputs() {
     final email = _emailController.text.trim();
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty && password.isEmpty) {
+      setState(() {
+        _loginErrorMessage = 'Você precisa preencher os campos.';
+        _emailLoginError = true;
+        _passwordLoginError = true;
+      });
+      return false;
+    }
 
     bool emailError = false;
     bool passwordError = false;

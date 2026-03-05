@@ -8,7 +8,10 @@ import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:appser/resources/audios/audio_player.dart';
+import 'package:appser/resources/docs/folheto_text_catalog.dart';
+import 'package:appser/resources/docs/folheto_text_view.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
+import 'package:appser/resources/docs/recomendacoes_gerais_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
 import 'package:appser/resources/videos/welcome_video_player.dart';
 import 'package:appser/screens/user_tracking_service.dart';
@@ -18,13 +21,42 @@ import 'package:appser/services/practice_resume_service.dart';
 import 'package:appser/services/session_unlock_service.dart';
 import 'package:appser/sessions/session_catalog.dart';
 import 'package:appser/sessions/session_hub_screen.dart';
-import 'package:appser/sessions/sessions.dart';
 import 'package:appser/stateChanges.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+Widget _assetIcon(
+  String assetPath, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.contain,
+  Color? color,
+}) {
+  final normalized = assetPath.toLowerCase();
+  if (normalized.endsWith('.svg')) {
+    return SvgPicture.asset(
+      assetPath,
+      width: width,
+      height: height,
+      fit: fit,
+      colorFilter:
+          color == null ? null : ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+
+  return Image.asset(
+    assetPath,
+    width: width,
+    height: height,
+    fit: fit,
+    filterQuality: FilterQuality.high,
+    color: color,
+  );
+}
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -591,27 +623,26 @@ class _HomeState extends State<Home> {
                         index: 0,
                         sessionStatus: sessionStatus,
                       ),
-                      onOpenRecommendations: () {
-                        // Best-effort: encaminha para materiais da Sessão 1
+                      onOpenBooklet: () {
+                        final folhetoText =
+                            FolhetoTextCatalog.forSession(1) ?? '';
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const SessionScreen(sessionNumber: 1),
+                            builder: (_) => FolhetoTextViewerScreen(
+                              title: 'Folheto Ser Sessão 1',
+                              text: folhetoText,
+                              sessaoId: 'sessao_1',
+                              itemId: 'folheto_ser_sessao_1',
+                            ),
                           ),
                         );
                       },
-                      onOpenBooklet: () {
+                      onOpenRecommendations: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const PdfViewerScreen(
-                              pdfPath: 'docs/materiaisum/apostilasersessaoum.docx.pdf',
-                              downloadPath: 'docs/materiaisum/apostilasersessaoum.docx',
-                              pdfTitle: 'Apostila do participante',
-                              sessaoId: 'sessao_1',
-                              itemId: 'docs/materiaisum/apostilasersessaoum.docx.pdf',
-                              isSupplementary: true,
-                            ),
+                            builder: (_) => const RecomendacoesGeraisView(),
                           ),
                         );
                       },
@@ -623,7 +654,7 @@ class _HomeState extends State<Home> {
                           child: _MetricCard(
                             value: '${stats.streakDays}',
                             label: 'Dias em Sequência',
-                            iconAsset: 'assets/sol.png',
+                            iconAsset: 'assets/sol.svg',
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -631,7 +662,7 @@ class _HomeState extends State<Home> {
                           child: _MetricCard(
                             value: '${stats.audioMinutes}',
                             label: 'Minutos meditados',
-                            iconAsset: 'assets/meditacao.png',
+                            iconAsset: 'assets/meditacao.svg',
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -639,7 +670,7 @@ class _HomeState extends State<Home> {
                           child: _MetricCard(
                             value: '${stats.completedSessions}',
                             label: 'Medalhas',
-                            iconAsset: 'assets/coracao.png',
+                            iconAsset: 'assets/coracao.svg',
                           ),
                         ),
                       ],
@@ -1060,12 +1091,7 @@ class _MetricCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Image.asset(
-                iconAsset,
-                width: 26,
-                height: 26,
-                fit: BoxFit.contain,
-              ),
+              _assetIcon(iconAsset, width: 26, height: 26),
             ],
           ),
           const SizedBox(height: 6),
@@ -1099,7 +1125,7 @@ class _GreetingBar extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            'Seja bem vinda, $greetingName!',
+            'Seja bem vindo(a), $greetingName!',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -1126,13 +1152,13 @@ class _GreetingBar extends StatelessWidget {
 
 class _SupportShortcutsRow extends StatelessWidget {
   final VoidCallback onOpenWelcome;
-  final VoidCallback onOpenRecommendations;
   final VoidCallback onOpenBooklet;
+  final VoidCallback onOpenRecommendations;
 
   const _SupportShortcutsRow({
     required this.onOpenWelcome,
-    required this.onOpenRecommendations,
     required this.onOpenBooklet,
+    required this.onOpenRecommendations,
   });
 
   @override
@@ -1142,7 +1168,7 @@ class _SupportShortcutsRow extends StatelessWidget {
         Expanded(
           child: _ShortcutCard(
             title: 'Boas vindas ao\nProjeto',
-            iconAsset: 'assets/meditacao.png',
+            iconAsset: 'assets/meditacao.svg',
             color: const Color(0xFFAFD1D0),
             onTap: onOpenWelcome,
           ),
@@ -1151,16 +1177,16 @@ class _SupportShortcutsRow extends StatelessWidget {
         Expanded(
           child: _ShortcutCard(
             title: 'Recomendações\ngerais',
-            iconAsset: 'assets/pedra.png',
-            color: const Color(0xFFFAC7AA),
+            iconAsset: 'assets/pedra.svg',
+            color: AppColors.shortcutRecommendationsBg,
             onTap: onOpenRecommendations,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _ShortcutCard(
-            title: 'Apostila do\nparticipante',
-            iconAsset: 'assets/livrof.png',
+            title: 'Folheto da\nSessão 1',
+            iconAsset: 'assets/livrof.svg',
             color: const Color(0xFFBAE9E9),
             onTap: onOpenBooklet,
           ),
@@ -1201,12 +1227,7 @@ class _ShortcutCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                iconAsset,
-                width: 26,
-                height: 26,
-                fit: BoxFit.contain,
-              ),
+              _assetIcon(iconAsset, width: 26, height: 26),
               const SizedBox(height: 6),
               Text(
                 title,
@@ -1288,11 +1309,11 @@ class _SessionTile extends StatelessWidget {
 
     Widget trailing;
     if (!enabled) {
-      trailing = Image.asset(
-        'assets/cadeado.png',
+      trailing = _assetIcon(
+        'assets/cadeado.svg',
         width: 20,
         height: 20,
-        fit: BoxFit.contain,
+        color: const Color(0xFF2F7888),
       );
     } else if (completed) {
       trailing = Container(
@@ -1309,12 +1330,7 @@ class _SessionTile extends StatelessWidget {
         ),
       );
     } else {
-      trailing = Image.asset(
-        'assets/voltarerrado.png',
-        width: 20,
-        height: 20,
-        fit: BoxFit.contain,
-      );
+      trailing = _assetIcon('assets/voltarerrado.png', width: 20, height: 20);
     }
 
     return Material(

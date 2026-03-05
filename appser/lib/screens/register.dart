@@ -1,6 +1,8 @@
 import 'package:appser/compenents/decoration_authentication.dart';
+import 'package:appser/core/formatters/cpf_input_formatter.dart';
 import 'package:appser/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../presentation/controllers/auth_controller.dart';
@@ -212,7 +214,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isSaving = true);
 
     final name = _nameCtrl.text.trim();
-    final cpf = _cpfCtrl.text.trim();
+    final cpf = CpfUtils.digitsOnly(_cpfCtrl.text);
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
 
@@ -288,6 +290,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: _cpfError ? _errorColor : const Color(0xFF232323),
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                      CpfInputFormatter(),
+                    ],
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 18),
@@ -395,13 +402,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.authLink,
+                        foregroundColor: const Color(0xFF232323),
                       ),
-                      child: const Text(
-                        'Já tem cadastro? Entrar',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(
+                              text: 'Já tem cadastro? ',
+                              style: TextStyle(
+                                color: Color(0xFF232323),
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'Entrar',
+                              style: const TextStyle(
+                                color: AppColors.authLink,
+                                fontWeight: FontWeight.w700,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

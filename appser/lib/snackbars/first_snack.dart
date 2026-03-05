@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
 
-showSnackBar(
-  {required BuildContext context, 
-  required String message, 
-  bool isError = true})
-  {
-  SnackBar snackBar = SnackBar(
+void showSnackBar({
+  required BuildContext context,
+  required String message,
+  bool isError = true,
+  Duration duration = const Duration(seconds: 3),
+}) {
+  final messenger = ScaffoldMessenger.of(context);
+
+  // Evita empilhar/"grudar" SnackBars anteriores.
+  messenger.clearSnackBars();
+
+  final snackBar = SnackBar(
     content: Text(message),
     backgroundColor: isError ? Colors.red : Colors.green,
-    duration: const Duration(seconds: 3),
-    action: SnackBarAction(label: "Ok", textColor: Colors.white, onPressed: () {
-
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    }),
+    duration: duration,
+    action: SnackBarAction(
+      label: 'OK',
+      textColor: Colors.white,
+      onPressed: () {
+        // Usa o messenger capturado (não depende do context ainda estar ativo).
+        messenger.removeCurrentSnackBar();
+      },
+    ),
   );
-  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+  messenger.showSnackBar(snackBar);
 }

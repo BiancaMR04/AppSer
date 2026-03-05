@@ -10,6 +10,7 @@
 
     <application
     android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true"
         android:label="App Ser"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

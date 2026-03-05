@@ -1,12 +1,16 @@
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/resources/docs/folheto_text_catalog.dart';
+import 'package:appser/resources/docs/folheto_text_view.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
+import 'package:appser/resources/images/image_view.dart';
+import 'package:appser/resources/images/multi_image_view.dart';
 import 'package:appser/sessions/session_catalog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:appser/core/theme/app_colors.dart';
-import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
 import 'package:appser/sessions/widgets/session_header.dart';
 
 class SessionMaterialScreen extends StatelessWidget {
@@ -26,8 +30,8 @@ class SessionMaterialScreen extends StatelessWidget {
     }
 
     return AppScaffold(
-      backgroundColor: const Color.fromARGB(255, 234, 242, 242),
-      appBar: AppBackAppBar(titleText: 'Material de apoio'),
+      backgroundColor: Colors.white,
+      appBar: const AppBackAppBar(titleText: 'Material de apoio'),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -43,7 +47,7 @@ class SessionMaterialScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withAlpha(15),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -53,25 +57,105 @@ class SessionMaterialScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   child: ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, thickness: 1, color: dividerColor),
+                    separatorBuilder: (_, __) => const Divider(
+                        height: 1, thickness: 1, color: dividerColor),
                     itemBuilder: (context, index) {
                       final item = items[index];
                       return Material(
                         color: Colors.white,
                         child: InkWell(
                           onTap: () {
+                            final normalizedTitle =
+                                displayTitle(item.title).toLowerCase();
+                            final normalizedPdfTitle =
+                                displayTitle(item.pdfTitle).toLowerCase();
+                            final pathLower = item.pdfPath.toLowerCase();
+
+                            final isImagePath = pathLower.endsWith('.png') ||
+                                pathLower.endsWith('.jpg') ||
+                                pathLower.endsWith('.jpeg') ||
+                                pathLower.endsWith('.webp') ||
+                                pathLower.startsWith('assets/');
+
+                            final isTripleImageBodyScanSession1 =
+                                sessionNumber == 1 &&
+                                    pathLower.endsWith(
+                                        'docs/materiaisum/primeirap.png');
+
+                            final isHtmlPath = pathLower.endsWith('.html') ||
+                                pathLower.endsWith('.htm');
+                            final isFolheto = normalizedTitle
+                                    .contains('folheto ser') ||
+                                normalizedPdfTitle.contains('folheto ser') ||
+                                isHtmlPath;
+
+                            final folhetoText = isFolheto
+                                ? FolhetoTextCatalog.forSession(sessionNumber)
+                                : null;
+
+                            if (kDebugMode) {
+                              debugPrint(
+                                'Material de apoio: title=${item.title} pdfTitle=${item.pdfTitle} path=${item.pdfPath} isFolheto=$isFolheto hasText=${folhetoText != null}',
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Abrindo: ${isFolheto ? 'TEXTO' : (isImagePath ? 'IMAGEM' : 'PDF')}\n${item.pdfPath}',
+                                  ),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
+
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PdfViewerScreen(
-                                  pdfPath: item.pdfPath,
-                                  downloadPath: item.downloadPath,
-                                  pdfTitle: item.pdfTitle,
-                                  sessaoId: sessionId,
-                                  itemId: item.pdfPath,
-                                  isSupplementary: true,
-                                ),
+                                builder: (context) {
+                                  if (isFolheto) {
+                                    final text = folhetoText ??
+                                        'Conteúdo do folheto ainda não foi inserido para a Sessão $sessionNumber.';
+                                    return FolhetoTextViewerScreen(
+                                      title: item.pdfTitle,
+                                      text: text,
+                                      sessaoId: sessionId,
+                                      itemId: item.title,
+                                    );
+                                  }
+
+                                  if (isImagePath) {
+                                    if (isTripleImageBodyScanSession1) {
+                                      return MultiImageViewerScreen(
+                                        imagePaths: const [
+                                          'docs/materiaisum/primeirap.png',
+                                          'docs/materiaisum/segundap.png',
+                                          'docs/materiaisum/terceirap.png',
+                                        ],
+                                        titleLine1: 'POSIÇÕES DEITADA',
+                                        titleLine2: 'Escaneamento corporal',
+                                        sessaoId: sessionId,
+                                        itemId: item.pdfPath,
+                                        isSupplementary: true,
+                                      );
+                                    }
+
+                                    return ImageViewerScreen(
+                                      imagePath: item.pdfPath,
+                                      imageTitle: item.pdfTitle,
+                                      sessaoId: sessionId,
+                                      itemId: item.pdfPath,
+                                      isSupplementary: true,
+                                    );
+                                  }
+
+                                  return PdfViewerScreen(
+                                    pdfPath: item.pdfPath,
+                                    downloadPath: item.downloadPath,
+                                    pdfTitle: item.pdfTitle,
+                                    sessaoId: sessionId,
+                                    itemId: item.pdfPath,
+                                    isSupplementary: true,
+                                  );
+                                },
                               ),
                             );
                           },

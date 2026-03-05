@@ -8,7 +8,13 @@ import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:appser/resources/audios/audio_player.dart';
+import 'package:appser/resources/docs/inline_text_view.dart';
+import 'package:appser/resources/docs/folheto_text_catalog.dart';
+import 'package:appser/resources/docs/folheto_text_view.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
+import 'package:appser/resources/images/image_view.dart';
+import 'package:appser/resources/images/multi_image_view.dart';
+import 'package:appser/resources/docs/recomendacoes_gerais_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
 import 'package:appser/resources/videos/welcome_video_player.dart';
 import 'package:appser/screens/home/widgets/session_titles.dart';
@@ -16,10 +22,39 @@ import 'package:appser/screens/user_tracking_service.dart';
 import 'package:appser/services/practice_resume_service.dart';
 import 'package:appser/sessions/session_catalog.dart';
 import 'package:appser/sessions/session_content_screen.dart';
-import 'package:appser/sessions/session_material_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+Widget _assetIcon(
+  String assetPath, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.contain,
+  Color? color,
+}) {
+  final normalized = assetPath.toLowerCase();
+  if (normalized.endsWith('.svg')) {
+    return SvgPicture.asset(
+      assetPath,
+      width: width,
+      height: height,
+      fit: fit,
+      colorFilter:
+          color == null ? null : ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+
+  return Image.asset(
+    assetPath,
+    width: width,
+    height: height,
+    fit: fit,
+    filterQuality: FilterQuality.high,
+    color: color,
+  );
+}
 
 class SessionHubScreen extends StatefulWidget {
   final int sessionNumber;
@@ -87,7 +122,8 @@ class _SessionHubScreenState extends State<SessionHubScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => SessionContentScreen(sessionNumber: widget.sessionNumber),
+          builder: (_) =>
+              SessionContentScreen(sessionNumber: widget.sessionNumber),
         ),
       );
       _refreshCompletionProgress();
@@ -239,26 +275,21 @@ class _SessionHubScreenState extends State<SessionHubScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => SessionMaterialScreen(
-                              sessionNumber: sessionNumber,
-                            ),
+                            builder: (_) => const RecomendacoesGeraisView(),
                           ),
                         );
                       },
                       onOpenBooklet: () {
+                        final folhetoText =
+                            FolhetoTextCatalog.forSession(1) ?? '';
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const PdfViewerScreen(
-                              pdfPath:
-                                  'docs/materiaisum/apostilasersessaoum.docx.pdf',
-                              downloadPath:
-                                  'docs/materiaisum/apostilasersessaoum.docx',
-                              pdfTitle: 'Apostila do participante',
+                            builder: (_) => FolhetoTextViewerScreen(
+                              title: 'Folheto Ser Sessão 1',
+                              text: folhetoText,
                               sessaoId: 'sessao_1',
-                              itemId:
-                                  'docs/materiaisum/apostilasersessaoum.docx.pdf',
-                              isSupplementary: true,
+                              itemId: 'folheto_ser_sessao_1',
                             ),
                           ),
                         );
@@ -315,9 +346,9 @@ class _UnifiedTasksList extends StatelessWidget {
     String iconAssetForContent(SessionContentItem item) {
       switch (item.type) {
         case SessionContentType.audio:
-          return 'assets/som.png';
+          return 'assets/som.svg';
         case SessionContentType.video:
-          return 'assets/video.png';
+          return 'assets/video.svg';
         case SessionContentType.pdf:
           if (item.itemId == 'praticando_em_casa') return 'assets/pessoam.png';
           return 'assets/livro.png';
@@ -376,7 +407,7 @@ class _UnifiedTasksList extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Colors.black54,
+                color: Color(0xFFC7CBCC),
               ),
             ),
           );
@@ -398,8 +429,16 @@ class _UnifiedTasksList extends StatelessWidget {
       final contentRows = <Widget>[];
       for (var i = 0; i < content.length; i++) {
         final item = content[i];
+
+        final iconColor = switch (item.type) {
+          SessionContentType.audio => const Color(0xFF2F7888),
+          SessionContentType.video => const Color(0xFF2F7888),
+          SessionContentType.pdf => null,
+        };
+
         final row = _SessionRectRow(
           iconAsset: iconAssetForContent(item),
+          iconColor: iconColor,
           title: displayTitle(item.title),
           trailing: trailingForContent(item),
           onTap: () async {
@@ -435,14 +474,33 @@ class _UnifiedTasksList extends StatelessWidget {
                 );
                 break;
               case SessionContentType.pdf:
-                destination = PdfViewerScreen(
-                  pdfPath: item.path,
-                  downloadPath: item.downloadPath ?? item.path,
-                  pdfTitle: item.viewerTitle,
-                  sessaoId: sessionId,
-                  itemId: item.itemId,
-                  isSupplementary: false,
-                );
+                if (sessionNumber == 1 && item.itemId == 'praticando_em_casa') {
+                  destination = const InlineTextViewerScreen(
+                    title: 'Praticando em Casa',
+                    text: 'PRATICANDO EM CASA DA SEGUINTE FORMA\n'
+                        'Momentos para reflexão\n'
+                        '- Lendo a apostila\n'
+                        '- Completando a planilha\n'
+                        '\n'
+                        'Momentos para experiência\n'
+                        '- Trazendo mindfulness para a vida diária (refeições)\n'
+                        '- Praticando escaneamento corporal 1x ao dia\n'
+                        '\n'
+                        'Próxima semana: trazer 5 livros (tamanhos variados)',
+                    sessaoId: 'sessao_1',
+                    itemId: 'praticando_em_casa',
+                    isSupplementary: false,
+                  );
+                } else {
+                  destination = PdfViewerScreen(
+                    pdfPath: item.path,
+                    downloadPath: item.downloadPath ?? item.path,
+                    pdfTitle: item.viewerTitle,
+                    sessaoId: sessionId,
+                    itemId: item.itemId,
+                    isSupplementary: false,
+                  );
+                }
                 break;
             }
 
@@ -456,7 +514,8 @@ class _UnifiedTasksList extends StatelessWidget {
 
         contentRows.add(row);
         if (i != content.length - 1) {
-          contentRows.add(const Divider(height: 1, thickness: 1, color: dividerColor));
+          contentRows
+              .add(const Divider(height: 1, thickness: 1, color: dividerColor));
         }
       }
 
@@ -467,17 +526,78 @@ class _UnifiedTasksList extends StatelessWidget {
           iconAsset: 'assets/livro.png',
           title: displayTitle(item.title),
           onTap: () async {
+            final normalizedTitle = displayTitle(item.title).toLowerCase();
+            final normalizedPdfTitle =
+                displayTitle(item.pdfTitle).toLowerCase();
+            final pathLower = item.pdfPath.toLowerCase();
+
+            final isImagePath = pathLower.endsWith('.png') ||
+                pathLower.endsWith('.jpg') ||
+                pathLower.endsWith('.jpeg') ||
+                pathLower.endsWith('.webp') ||
+                pathLower.startsWith('assets/');
+
+            final isTripleImageBodyScanSession1 = sessionNumber == 1 &&
+                pathLower.endsWith('docs/materiaisum/primeirap.png');
+
+            final isHtmlPath =
+                pathLower.endsWith('.html') || pathLower.endsWith('.htm');
+            final isFolhetoCandidate =
+                normalizedTitle.contains('folheto ser') ||
+                    normalizedPdfTitle.contains('folheto ser') ||
+                    isHtmlPath;
+
+            final folhetoText = isFolhetoCandidate
+                ? FolhetoTextCatalog.forSession(sessionNumber)
+                : null;
+
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => PdfViewerScreen(
-                  pdfPath: item.pdfPath,
-                  downloadPath: item.downloadPath,
-                  pdfTitle: item.pdfTitle,
-                  sessaoId: sessionId,
-                  itemId: item.pdfPath,
-                  isSupplementary: true,
-                ),
+                builder: (_) {
+                  if (isFolhetoCandidate && folhetoText != null) {
+                    return FolhetoTextViewerScreen(
+                      title: item.pdfTitle,
+                      text: folhetoText,
+                      sessaoId: sessionId,
+                      itemId: item.title,
+                    );
+                  }
+
+                  if (isImagePath) {
+                    if (isTripleImageBodyScanSession1) {
+                      return MultiImageViewerScreen(
+                        imagePaths: const [
+                          'docs/materiaisum/primeirap.png',
+                          'docs/materiaisum/segundap.png',
+                          'docs/materiaisum/terceirap.png',
+                        ],
+                        titleLine1: 'POSIÇÕES DEITADA',
+                        titleLine2: 'Escaneamento corporal',
+                        sessaoId: sessionId,
+                        itemId: item.pdfPath,
+                        isSupplementary: true,
+                      );
+                    }
+
+                    return ImageViewerScreen(
+                      imagePath: item.pdfPath,
+                      imageTitle: item.pdfTitle,
+                      sessaoId: sessionId,
+                      itemId: item.pdfPath,
+                      isSupplementary: true,
+                    );
+                  }
+
+                  return PdfViewerScreen(
+                    pdfPath: item.pdfPath,
+                    downloadPath: item.downloadPath,
+                    pdfTitle: item.pdfTitle,
+                    sessaoId: sessionId,
+                    itemId: item.pdfPath,
+                    isSupplementary: true,
+                  );
+                },
               ),
             );
             onAfterTaskReturn();
@@ -486,7 +606,8 @@ class _UnifiedTasksList extends StatelessWidget {
 
         materialRows.add(row);
         if (i != materials.length - 1) {
-          materialRows.add(const Divider(height: 1, thickness: 1, color: dividerColor));
+          materialRows
+              .add(const Divider(height: 1, thickness: 1, color: dividerColor));
         }
       }
 
@@ -516,9 +637,9 @@ class _UnifiedTasksList extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: stream,
       builder: (context, snapshot) {
-        final conclusoesPorItemId =
-            snapshot.data?.data()?['conclusoesPorItemId'] as Map<String, dynamic>? ??
-                const <String, dynamic>{};
+        final conclusoesPorItemId = snapshot.data
+                ?.data()?['conclusoesPorItemId'] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
         return buildList(conclusoesPorItemId);
       },
     );
@@ -645,7 +766,8 @@ class _SessionHubMainCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: buttonMaxWidth),
-                      child: SizedBox(width: double.infinity, child: resumeButton),
+                      child:
+                          SizedBox(width: double.infinity, child: resumeButton),
                     ),
                   ],
                 ),
@@ -771,7 +893,7 @@ class _SupportShortcutsRow extends StatelessWidget {
         Expanded(
           child: _ShortcutCard(
             title: 'Boas vindas ao\nProjeto SER',
-            iconAsset: 'assets/pessoam.png',
+            iconAsset: 'assets/meditacao.svg',
             color: const Color(0xFFAFD1D0),
             onTap: onOpenWelcome,
           ),
@@ -780,16 +902,16 @@ class _SupportShortcutsRow extends StatelessWidget {
         Expanded(
           child: _ShortcutCard(
             title: 'Recomendações\ngerais',
-            iconAsset: 'assets/pedra.png',
-            color: const Color(0xFFFAC7AA),
+            iconAsset: 'assets/pedra.svg',
+            color: AppColors.shortcutRecommendationsBg,
             onTap: onOpenRecommendations,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _ShortcutCard(
-            title: 'Apostila do\nparticipante',
-            iconAsset: 'assets/livrof.png',
+            title: 'Folheto da\nSessão 1',
+            iconAsset: 'assets/livrof.svg',
             color: const Color(0xFFBAE9E9),
             onTap: onOpenBooklet,
           ),
@@ -801,12 +923,14 @@ class _SupportShortcutsRow extends StatelessWidget {
 
 class _SessionRectRow extends StatelessWidget {
   final String iconAsset;
+  final Color? iconColor;
   final String title;
   final Widget? trailing;
   final VoidCallback onTap;
 
   const _SessionRectRow({
     required this.iconAsset,
+    this.iconColor,
     required this.title,
     required this.onTap,
     this.trailing,
@@ -822,12 +946,7 @@ class _SessionRectRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
-              Image.asset(
-                iconAsset,
-                width: 22,
-                height: 22,
-                fit: BoxFit.contain,
-              ),
+              _assetIcon(iconAsset, width: 22, height: 22, color: iconColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -879,12 +998,7 @@ class _ShortcutCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                iconAsset,
-                width: 26,
-                height: 26,
-                fit: BoxFit.contain,
-              ),
+              _assetIcon(iconAsset, width: 26, height: 26),
               const SizedBox(height: 6),
               Text(
                 title,

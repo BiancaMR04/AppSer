@@ -3,13 +3,45 @@ import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/core/theme/app_colors.dart';
+import 'package:appser/resources/docs/recomendacoes_gerais_view.dart';
 import 'package:appser/resources/videos/welcome_video_player.dart';
 import 'package:appser/screens/home/widgets/session_list.dart';
 import 'package:appser/services/session_unlock_service.dart';
 import 'package:appser/sessions/session_hub_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+
+Widget _assetIcon(
+  String assetPath, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.contain,
+  Color? color,
+}) {
+  final normalized = assetPath.toLowerCase();
+  if (normalized.endsWith('.svg')) {
+    return SvgPicture.asset(
+      assetPath,
+      width: width,
+      height: height,
+      fit: fit,
+      colorFilter:
+          color == null ? null : ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
+
+  return Image.asset(
+    assetPath,
+    width: width,
+    height: height,
+    fit: fit,
+    filterQuality: FilterQuality.high,
+    color: color,
+  );
+}
 
 class SessionsOverviewScreen extends StatefulWidget {
   const SessionsOverviewScreen({super.key});
@@ -101,6 +133,26 @@ class _SessionsOverviewScreenState extends State<SessionsOverviewScreen> {
               return Column(
                 children: <Widget>[
                   SizedBox(height: screenHeight * 0.05),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ShortcutCard(
+                          title: 'Recomendações\ngerais',
+                          iconAsset: 'assets/pedra.svg',
+                          color: AppColors.shortcutRecommendationsBg,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RecomendacoesGeraisView(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
                   HomeSessionList(
                     sessionStatus: sessionStatus,
                     screenHeight: screenHeight,
@@ -119,6 +171,59 @@ class _SessionsOverviewScreenState extends State<SessionsOverviewScreen> {
         ),
       ),
       bottomNavigationBar: const AppBottomNavBar(),
+    );
+  }
+}
+
+class _ShortcutCard extends StatelessWidget {
+  final String title;
+  final String iconAsset;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ShortcutCard({
+    required this.title,
+    required this.iconAsset,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          height: 92,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _assetIcon(iconAsset, width: 26, height: 26),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF202020),
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

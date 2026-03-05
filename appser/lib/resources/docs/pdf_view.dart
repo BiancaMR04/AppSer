@@ -53,7 +53,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         localPath = path;
       });
     } catch (e) {
-      print('Erro ao baixar o PDF: $e');
+      debugPrint('Erro ao baixar o PDF: $e');
     }
   }
 
@@ -100,48 +100,76 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     final showBodyTitle = appBarTitleText != widget.pdfTitle;
 
     return AppScaffold(
+      extendBodyBehindAppBar: false,
+      extendBody: false,
       appBar: AppBackAppBar(
         titleText: appBarTitleText,
         iconColor: Colors.grey,
       ),
       body: AppBackground(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (showBodyTitle) ...[
-                Text(
-                  widget.pdfTitle,
-                  style: TextStyle(fontSize: 24, color: Colors.teal[600]),
-                  textAlign: TextAlign.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const horizontalPadding = 16.0;
+            const verticalPadding = 12.0;
+
+            final maxWidth = constraints.maxWidth - (horizontalPadding * 2);
+            final viewerWidth = (maxWidth * 0.98)
+                .clamp(0.0, maxWidth.isFinite ? maxWidth : double.infinity);
+
+            final computedHeight = constraints.maxHeight * 0.74;
+            final cappedHeight = computedHeight > 620.0 ? 620.0 : computedHeight;
+            final maxAllowedHeight = (constraints.maxHeight - 24)
+                .clamp(0.0, constraints.maxHeight.isFinite ? constraints.maxHeight : double.infinity);
+            final viewerHeight = cappedHeight > maxAllowedHeight
+                ? maxAllowedHeight
+                : cappedHeight;
+
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
                 ),
-                const SizedBox(height: 20),
-              ],
-              localPath.isNotEmpty
-                  ? SizedBox(
-                      height: 600,
-                      width: MediaQuery.of(context).size.width * 0.9,
-                      child: AppCardContainer(
-                        clipContent: true,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showBodyTitle) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: Text(
+                          widget.pdfTitle,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF232323),
                           ),
-                        ],
-                        child: PDFView(
-                          filePath: localPath,
-                          onRender: (_) {
-                            _onPdfViewed();
-                          },
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    )
-                  : const CircularProgressIndicator(),
-            ],
-          ),
+                    ],
+                    localPath.isNotEmpty
+                        ? SizedBox(
+                            width: viewerWidth,
+                            height: viewerHeight,
+                            child: AppCardContainer(
+                              clipContent: true,
+                              child: PDFView(
+                                filePath: localPath,
+                                backgroundColor: Colors.white,
+                                fitEachPage: true,
+                                fitPolicy: FitPolicy.BOTH,
+                                onRender: (_) {
+                                  _onPdfViewed();
+                                },
+                              ),
+                            ),
+                          )
+                        : const CircularProgressIndicator(),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: const AppBottomNavBar(),

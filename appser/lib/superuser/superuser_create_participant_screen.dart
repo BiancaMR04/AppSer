@@ -1,4 +1,5 @@
 import 'package:appser/core/theme/app_colors.dart';
+import 'package:appser/core/formatters/cpf_input_formatter.dart';
 import 'package:appser/firebase_options.dart';
 import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
@@ -6,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/constants/firestore_paths.dart';
 
@@ -70,7 +72,7 @@ class _SuperuserCreateParticipantScreenState
       final email = _emailCtrl.text.trim();
       final password = _passwordCtrl.text;
       final name = _nameCtrl.text.trim();
-      final cpf = _cpfCtrl.text.trim();
+      final cpf = CpfUtils.digitsOnly(_cpfCtrl.text);
 
       final cred = await secondaryAuth.createUserWithEmailAndPassword(
         email: email,
@@ -299,10 +301,18 @@ class _SuperuserCreateParticipantScreenState
                           controller: _cpfCtrl,
                           decoration: _inputDecoration('CPF'),
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(11),
+                            CpfInputFormatter(),
+                          ],
                           textInputAction: TextInputAction.next,
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Informe o CPF'
-                              : null,
+                          validator: (v) {
+                            final digits = CpfUtils.digitsOnly(v ?? '');
+                            if (digits.isEmpty) return 'Informe o CPF';
+                            if (digits.length != 11) return 'CPF inválido';
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 14),
                         TextFormField(

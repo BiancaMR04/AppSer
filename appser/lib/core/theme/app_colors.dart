@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-    // Global solid background (requested)
-    static const Color appBackground = Color(0xFFF5F6F2);
+    // Global solid background
+    static const Color appBackground = Colors.white;
 
     // Navbar
     static const Color navbarTitle = Color(0xFF2F7888);
@@ -19,7 +19,7 @@ abstract final class AppColors {
 
   static const Color actionGreen = Color.fromARGB(255, 0, 129, 71);
 
-  // Authentication
+    // Authentication
     static const Color authBackground = appBackground;
   static const Color authPrimary = Color(0xFF77C79C);
   static const Color authText = Color(0xFF293738);
@@ -42,4 +42,7 @@ abstract final class AppColors {
 
   static const Color sessionTileTitle = Color.fromARGB(255, 62, 73, 73);
   static const Color sessionDottedLine = Color.fromARGB(255, 241, 209, 208);
+
+    // Shortcut cards
+    static const Color shortcutRecommendationsBg = Color(0xFFFAC7AA);
 }
