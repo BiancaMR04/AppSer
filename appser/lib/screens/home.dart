@@ -8,8 +8,6 @@ import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:appser/resources/audios/audio_player.dart';
-import 'package:appser/resources/docs/folheto_text_catalog.dart';
-import 'package:appser/resources/docs/folheto_text_view.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/docs/recomendacoes_gerais_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
@@ -65,7 +63,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   late Future<_HomeData> _homeData;
 
   static const _lastOpenedSessionKey = 'home.lastOpenedSessionIndex';
@@ -73,6 +71,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _homeData = _fetchHomeData();
 
     // Salvaguarda: se a Home for aberta sem usuário logado,
@@ -86,6 +85,19 @@ class _HomeState extends State<Home> {
         (route) => false,
       );
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshSessions();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _logoutAndGoToLogin() async {
@@ -103,7 +115,8 @@ class _HomeState extends State<Home> {
   }
 
   Future<_HomeData> _fetchHomeData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid;
     if (uid != null) {
       // Best-effort: tenta liberar sessões antes de recarregar a Home.
       await context.read<SessionUnlockService>().ensureSessionUnlocks(uid: uid);
@@ -623,21 +636,6 @@ class _HomeState extends State<Home> {
                         index: 0,
                         sessionStatus: sessionStatus,
                       ),
-                      onOpenBooklet: () {
-                        final folhetoText =
-                            FolhetoTextCatalog.forSession(1) ?? '';
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FolhetoTextViewerScreen(
-                              title: 'Folheto Ser Sessão 1',
-                              text: folhetoText,
-                              sessaoId: 'sessao_1',
-                              itemId: 'folheto_ser_sessao_1',
-                            ),
-                          ),
-                        );
-                      },
                       onOpenRecommendations: () {
                         Navigator.push(
                           context,
@@ -1152,12 +1150,10 @@ class _GreetingBar extends StatelessWidget {
 
 class _SupportShortcutsRow extends StatelessWidget {
   final VoidCallback onOpenWelcome;
-  final VoidCallback onOpenBooklet;
   final VoidCallback onOpenRecommendations;
 
   const _SupportShortcutsRow({
     required this.onOpenWelcome,
-    required this.onOpenBooklet,
     required this.onOpenRecommendations,
   });
 
@@ -1180,15 +1176,6 @@ class _SupportShortcutsRow extends StatelessWidget {
             iconAsset: 'assets/pedra.svg',
             color: AppColors.shortcutRecommendationsBg,
             onTap: onOpenRecommendations,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ShortcutCard(
-            title: 'Folheto da\nSessão 1',
-            iconAsset: 'assets/livrof.svg',
-            color: const Color(0xFFBAE9E9),
-            onTap: onOpenBooklet,
           ),
         ),
       ],

@@ -159,7 +159,10 @@ class UserTrackingRepositoryImpl implements UserTrackingRepository {
 
     final snapshot = await _dataSource.getUser(uid);
 
-    if (!snapshot.exists || snapshot.data()?['dataInicio'] == null) {
+    // IMPORTANTE: não cria documento novo de usuário aqui.
+    // Se o doc não existir, isso indica que o cadastro no Firestore não está
+    // sincronizado com o uid do FirebaseAuth.
+    if (snapshot.exists && snapshot.data()?['dataInicio'] == null) {
       await _dataSource.setUserMerge(uid, {
         'dataInicio': FieldValue.serverTimestamp(),
       });
@@ -177,7 +180,10 @@ class UserTrackingRepositoryImpl implements UserTrackingRepository {
     if (dataInicio == null) return [];
 
     final agora = DateTime.now();
-    final diasPassados = agora.difference(dataInicio).inDays;
+    final inicioLocal = dataInicio.toLocal();
+    final hoje = DateTime(agora.year, agora.month, agora.day);
+    final inicioDia = DateTime(inicioLocal.year, inicioLocal.month, inicioLocal.day);
+    final diasPassados = hoje.difference(inicioDia).inDays;
 
     List<int> desbloqueadas = [];
     for (int i = 0; i <= 8; i++) {

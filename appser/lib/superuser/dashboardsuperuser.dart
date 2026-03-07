@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:appser/stateChanges.dart';
+import 'package:appser/core/constants/firestore_paths.dart';
 
 import '../presentation/controllers/superuser_controller.dart';
 import 'superuser_groups_screen.dart';
@@ -19,12 +21,111 @@ class SuperuserDashboard extends StatefulWidget {
 }
 
 class _SuperuserDashboardState extends State<SuperuserDashboard> {
+  bool _isUnlockingAllUsers = false;
+
   Rect? _shareOriginRect() {
     final renderObject = context.findRenderObject();
     if (renderObject is RenderBox) {
       return renderObject.localToGlobal(Offset.zero) & renderObject.size;
     }
     return null;
+  }
+
+  Future<bool> _confirmUnlockAllSessionsForAllUsers() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirmar ação'),
+          content: const Text(
+            'Tem certeza que deseja liberar as sessões para todos usuários?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Não'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Sim'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result == true;
+  }
+
+  Future<int> _unlockAllSessionsForAllUsersInFirestore() async {
+    final firestore = FirebaseFirestore.instance;
+    final usersRef = firestore.collection(FirestorePaths.usersCollection);
+
+    final updates = <String, dynamic>{
+      'sessionsLastAutoUnlockAt': FieldValue.serverTimestamp(),
+    };
+    for (var i = 0; i <= 8; i++) {
+      updates['session$i'] = true;
+    }
+
+    const pageSize = 400; // batch limit: 500 writes
+    DocumentSnapshot<Map<String, dynamic>>? last;
+    var updatedUsers = 0;
+
+    while (true) {
+        Query<Map<String, dynamic>> query =
+          usersRef.orderBy(FieldPath.documentId).limit(pageSize);
+      if (last != null) {
+        query = query.startAfterDocument(last);
+      }
+
+      final page = await query.get();
+      if (page.docs.isEmpty) break;
+
+      final batch = firestore.batch();
+      for (final doc in page.docs) {
+        batch.update(doc.reference, updates);
+        updatedUsers++;
+      }
+      await batch.commit();
+
+      last = page.docs.last;
+    }
+
+    return updatedUsers;
+  }
+
+  Future<void> _onUnlockAllUsersPressed() async {
+    if (_isUnlockingAllUsers) return;
+
+    final confirmed = await _confirmUnlockAllSessionsForAllUsers();
+    if (!confirmed) return;
+
+    setState(() => _isUnlockingAllUsers = true);
+    try {
+      final updatedUsers = await _runWithLoading<int>(
+        message: 'Liberando sessões para todos usuários...',
+        action: _unlockAllSessionsForAllUsersInFirestore,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sessões liberadas para $updatedUsers usuários.'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível liberar as sessões para todos.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUnlockingAllUsers = false);
+      }
+    }
   }
 
   Future<void> _shareFile({required String path, required String text}) async {
@@ -315,6 +416,26 @@ class _SuperuserDashboardState extends State<SuperuserDashboard> {
                   elevation: 2,
                   trailing: const Icon(
                     Icons.chevron_right,
+                    color: Colors.white,
+                  ),
+                ),
+                AppElevatedRowButton(
+                  onPressed: _onUnlockAllUsersPressed,
+                  icon: Icons.lock_open,
+                  iconColor: Colors.white,
+                  title: _isUnlockingAllUsers
+                      ? 'Liberando sessões...'
+                      : 'Liberar sessões (todos usuários)',
+                  titleStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  backgroundColor: accent,
+                  borderRadius: 16,
+                  elevation: 2,
+                  trailing: const Icon(
+                    Icons.warning_amber_rounded,
                     color: Colors.white,
                   ),
                 ),

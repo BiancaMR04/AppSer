@@ -7,6 +7,9 @@ abstract final class AppColors {
     // Navbar
     static const Color navbarTitle = Color(0xFF2F7888);
 
+    // Folhetos (títulos em caixa alta)
+    static const Color folhetoTitle = Color(0xFF45706B);
+
   static const Color brandTeal = Color(0xFF00A896);
 
   static const Color primaryBlue = Color.fromARGB(255, 70, 148, 166);

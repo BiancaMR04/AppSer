@@ -279,21 +279,6 @@ class _SessionHubScreenState extends State<SessionHubScreen> {
                           ),
                         );
                       },
-                      onOpenBooklet: () {
-                        final folhetoText =
-                            FolhetoTextCatalog.forSession(1) ?? '';
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FolhetoTextViewerScreen(
-                              title: 'Folheto Ser Sessão 1',
-                              text: folhetoText,
-                              sessaoId: 'sessao_1',
-                              itemId: 'folheto_ser_sessao_1',
-                            ),
-                          ),
-                        );
-                      },
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -878,12 +863,10 @@ class _ProgressRingPainter extends CustomPainter {
 class _SupportShortcutsRow extends StatelessWidget {
   final VoidCallback onOpenWelcome;
   final VoidCallback onOpenRecommendations;
-  final VoidCallback onOpenBooklet;
 
   const _SupportShortcutsRow({
     required this.onOpenWelcome,
     required this.onOpenRecommendations,
-    required this.onOpenBooklet,
   });
 
   @override
@@ -905,15 +888,6 @@ class _SupportShortcutsRow extends StatelessWidget {
             iconAsset: 'assets/pedra.svg',
             color: AppColors.shortcutRecommendationsBg,
             onTap: onOpenRecommendations,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ShortcutCard(
-            title: 'Folheto da\nSessão 1',
-            iconAsset: 'assets/livrof.svg',
-            color: const Color(0xFFBAE9E9),
-            onTap: onOpenBooklet,
           ),
         ),
       ],

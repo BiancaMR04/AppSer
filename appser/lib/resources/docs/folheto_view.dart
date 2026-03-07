@@ -11,6 +11,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../screens/user_tracking_service.dart';
 
@@ -54,6 +55,8 @@ class _FolhetoViewerScreenState extends State<FolhetoViewerScreen> {
   void initState() {
     super.initState();
 
+    final sessionNumber = _effectiveSessionNumber();
+
     _gatilhos = _EditableTableController(
       tableKey: 'planilha_notando_gatilhos',
       columns: const [
@@ -69,16 +72,49 @@ class _FolhetoViewerScreenState extends State<FolhetoViewerScreen> {
 
     _acompanhamento = _EditableTableController(
       tableKey: 'planilha_acompanhamento_diario',
-      columns: const [
-        'Dia/data',
-        'Prática formal (tempo)',
-        'Atividade escolhida',
-        'Observações/comentários/desafios',
-      ],
+      columns: (sessionNumber == 7 || sessionNumber == 8)
+          ? const [
+              'Dia/data',
+              'Prática formal com áudio: Quanto tempo praticou?',
+              'PARAR, espaço para respirar',
+              'Anotações/comentários',
+            ]
+          : const [
+              'Dia/data',
+              'Prática formal (tempo)',
+              'Atividade escolhida',
+              'Observações/comentários/desafios',
+            ],
       rowCount: 10,
     );
 
     _load();
+  }
+
+  int? _effectiveSessionNumber() {
+    final raw = widget.sessaoId?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    final match =
+        RegExp(r'^(?:sessao_)?(\d+)$', caseSensitive: false).firstMatch(raw);
+    if (match == null) return null;
+    return int.tryParse(match.group(1) ?? '');
+  }
+
+  bool _openExternalUrl(String url) {
+    var normalized = url.replaceAll(RegExp(r'\s+'), '');
+    normalized = normalized.replaceAll(
+      RegExp(
+        r'[\]\[\)\(\}\{\.,;:!\?"\u2019\u2018\u201D\u201C\u00BB\u00AB]+$',
+      ),
+      '',
+    );
+    if (normalized.toLowerCase().startsWith('www.')) {
+      normalized = 'https://$normalized';
+    }
+    final uri = Uri.tryParse(normalized);
+    if (uri == null) return false;
+    launchUrl(uri, mode: LaunchMode.externalApplication);
+    return true;
   }
 
   @override
@@ -114,7 +150,8 @@ class _FolhetoViewerScreenState extends State<FolhetoViewerScreen> {
       if (!mounted) return;
       setState(() {
         final source = widget.htmlPath ?? 'inline_html';
-        _error = 'Erro ao carregar o folheto.\n\nArquivo: $source\n\nDetalhes: $e';
+        _error =
+            'Erro ao carregar o folheto.\n\nArquivo: $source\n\nDetalhes: $e';
         _isLoading = false;
       });
     }
@@ -181,7 +218,8 @@ class _FolhetoViewerScreenState extends State<FolhetoViewerScreen> {
     final sessaoId = widget.sessaoId?.trim();
     final itemId = widget.itemId?.trim();
 
-    final safeSessao = (sessaoId == null || sessaoId.isEmpty) ? 'sessao' : sessaoId;
+    final safeSessao =
+        (sessaoId == null || sessaoId.isEmpty) ? 'sessao' : sessaoId;
     final safeItem = (itemId == null || itemId.isEmpty) ? 'folheto' : itemId;
 
     // docId não pode ter '/'
@@ -272,6 +310,205 @@ class _FolhetoViewerScreenState extends State<FolhetoViewerScreen> {
 
   Widget _buildBody(BuildContext context) {
     final html = _normalizeHtml(_html ?? '');
+    final sessionNumber = _effectiveSessionNumber();
+
+    // Sessão 8: a planilha de acompanhamento precisa aparecer logo após o
+    // parágrafo "Existem muitas coisas...", antes das listas de suporte.
+    if (sessionNumber == 8) {
+      const anchorPrefix = 'Existem muitas coisas que nós não controlamos';
+      final anchorIndex = html.indexOf(anchorPrefix);
+
+      String? htmlBefore;
+      String? htmlAfter;
+      if (anchorIndex != -1) {
+        // Tentamos cortar no fim do <p> do parágrafo. Se não existir, cortamos
+        // logo após o prefixo (fallback suave).
+        final endP = html.indexOf('</p>', anchorIndex);
+        final splitAt =
+            endP != -1 ? endP + 4 : anchorIndex + anchorPrefix.length;
+        htmlBefore = html.substring(0, splitAt);
+        htmlAfter = html.substring(splitAt);
+      }
+
+      String convertDashBulletsToTopics(String input) {
+        // Alguns exports (ex.: Google Docs) trazem listas como parágrafos
+        // iniciando com "- ". Para manter visual de "tópico", trocamos por "• ".
+        return input
+            .replaceAllMapped(
+              RegExp(r'(<p[^>]*>)\s*-\s*', caseSensitive: false),
+              (m) => '${m.group(1)}• ',
+            )
+            .replaceAllMapped(
+              RegExp(r'(<br\s*/?>)\s*-\s*', caseSensitive: false),
+              (m) => '${m.group(1)}• ',
+            )
+            .replaceAllMapped(
+              RegExp(r'\n-\s*'),
+              (m) => '\n• ',
+            );
+      }
+
+      Widget htmlWidget(String content) {
+        return HtmlWidget(
+          convertDashBulletsToTopics(content),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            height: 1.35,
+            color: Color(0xFF232323),
+          ),
+          customStylesBuilder: (element) {
+            final t = element.text.trim();
+
+            bool looksLikeSession8PoemLine(String s) {
+              final tt = s.trim();
+              if (tt.isEmpty) return false;
+              if (tt == 'Gunilla Norris') return false;
+              // Heurística: linhas do poema têm frases bem específicas.
+              return tt.startsWith('É um paradoxo') ||
+                  tt.startsWith('como nós encontramos') ||
+                  tt.startsWith('o fato de experienciar') ||
+                  tt.startsWith('que nos mantendo em quietude') ||
+                  tt.startsWith('Nossas mentes não gostam de paradoxos') ||
+                  tt.startsWith('para que possamos manter') ||
+                  tt.startsWith('A certeza gera') ||
+                  tt.startsWith('Cada um de nós') ||
+                  tt.startsWith('Ele sabe que o verão') ||
+                  tt.startsWith('Ele sabe que no momento') ||
+                  tt.startsWith('Ele sabe que tudo na vida') ||
+                  tt.startsWith('em meio às sombras') ||
+                  tt.startsWith('Quando nos sentamos em quietude') ||
+                  tt.startsWith('Mantendo o silêncio') ||
+                  tt.startsWith('Através da nossa boa vontade') ||
+                  tt.startsWith('Nós nos tornamos um em união');
+            }
+
+            if (t.toUpperCase() == 'TEMA') {
+              return const {
+                'color': '#45706b',
+                'font-weight': '800',
+              };
+            }
+
+            String normalizeHeading(String s) {
+              final noBullet = s
+                  .trim()
+                  .replaceFirst(RegExp(r'^[•\-–—]\s*'), '')
+                  .replaceAll('“', '"')
+                  .replaceAll('”', '"')
+                  .replaceAll('"', '')
+                  .replaceAll(RegExp(r'\s+'), ' ')
+                  .toLowerCase();
+
+              return noBullet;
+            }
+
+            const session5Headings = {
+              'posição da montanha',
+              'tirando uma camiseta',
+              'tirando uma camiseta ao contrário',
+              'colhendo uma fruta',
+              'dobrar para frente',
+              'posição de descanso final',
+            };
+
+            const session8Headings = {
+              'projeto ser',
+              'medita-nepsis unifesp',
+              'formação em mbrp',
+              'casa de dharma',
+              'centro de estudos budistas',
+              'grupo tergar',
+            };
+
+            if (session5Headings.contains(normalizeHeading(t))) {
+              return const {
+                'font-weight': '700',
+                'color': '#232323',
+              };
+            }
+
+            if (session8Headings.contains(normalizeHeading(t))) {
+              return const {
+                'font-weight': '700',
+                'color': '#232323',
+              };
+            }
+
+            if (sessionNumber == 8) {
+              if (t == 'Gunilla Norris') {
+                return const {
+                  'font-style': 'normal',
+                  'color': '#232323',
+                };
+              }
+              if (looksLikeSession8PoemLine(t)) {
+                return const {
+                  'font-style': 'italic',
+                  'color': '#232323',
+                };
+              }
+            }
+
+            return const {'color': '#232323'};
+          },
+          onTapUrl: (url) {
+            return _openExternalUrl(url);
+          },
+        );
+      }
+
+      return SelectionArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            htmlWidget(htmlBefore ?? html),
+            const SizedBox(height: 18),
+            const _SectionTitle('PLANILHA DE ACOMPANHAMENTO DIÁRIO DE PRÁTICA'),
+            const SizedBox(height: 6),
+            const Text(
+              'Instruções: a cada dia registre suas práticas de meditação, anotando também quaisquer barreiras, observações ou comentários.',
+              style: TextStyle(
+                fontSize: 14.5,
+                height: 1.35,
+                color: Color(0xFF232323),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _EditableTableWidget(controller: _acompanhamento),
+            const SizedBox(height: 18),
+            if (htmlAfter != null && htmlAfter.trim().isNotEmpty) ...[
+              htmlWidget(htmlAfter),
+              const SizedBox(height: 18),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF60BFCD),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Salvar',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Dica: você pode selecionar e copiar o texto acima.',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
 
     return SelectionArea(
       child: ListView(
@@ -286,19 +523,71 @@ class _FolhetoViewerScreenState extends State<FolhetoViewerScreen> {
             ),
             customStylesBuilder: (element) {
               // Mantém o texto legível mesmo quando o HTML traz estilos próprios.
+              final t = element.text.trim();
+              if (t.toUpperCase() == 'TEMA') {
+                return const {
+                  'color': '#45706b',
+                  'font-weight': '800',
+                };
+              }
+
+              String normalizeHeading(String s) {
+                return s
+                    .trim()
+                    .replaceAll('“', '"')
+                    .replaceAll('”', '"')
+                    .replaceAll('"', '')
+                    .replaceAll(RegExp(r'\s+'), ' ')
+                    .toLowerCase();
+              }
+
+              const session5Headings = {
+                'posição da montanha',
+                'tirando uma camiseta',
+                'tirando uma camiseta ao contrário',
+                'colhendo uma fruta',
+                'dobrar para frente',
+                'posição de descanso final',
+              };
+
+              if (session5Headings.contains(normalizeHeading(t))) {
+                return const {
+                  'font-weight': '700',
+                  'color': '#232323',
+                };
+              }
+
               return const {'color': '#232323'};
             },
             onTapUrl: (url) {
               // Mantém o comportamento padrão (não abre automaticamente aqui).
-              return false;
+              return _openExternalUrl(url);
             },
           ),
           const SizedBox(height: 18),
-          const _SectionTitle('Planilha Notando Gatilhos'),
+          const _SectionTitle('PLANILHA NOTANDO GATILHOS'),
+          const SizedBox(height: 6),
+          const Text(
+            'Nessa semana preste atenção no que provoca em você a vontade de reagir automaticamente ou de forma impulsiva. Use as questões seguintes para trazer à consciência os detalhes das experiências em que isso acontece.',
+            style: TextStyle(
+              fontSize: 14.5,
+              height: 1.35,
+              color: Color(0xFF232323),
+            ),
+          ),
           const SizedBox(height: 10),
           _EditableTableWidget(controller: _gatilhos),
           const SizedBox(height: 18),
-          const _SectionTitle('Planilha de Acompanhamento Diário de Prática'),
+          const _SectionTitle('PLANILHA DE ACOMPANHAMENTO DIÁRIO DE PRÁTICA'),
+          const SizedBox(height: 6),
+          const Text(
+            'Instruções: a cada dia registre suas práticas de meditação, anotando também quaisquer barreiras, observações ou comentários.',
+            style: TextStyle(
+              fontSize: 14.5,
+              height: 1.35,
+              color: Color(0xFF232323),
+            ),
+          ),
           const SizedBox(height: 10),
           _EditableTableWidget(controller: _acompanhamento),
           const SizedBox(height: 18),
@@ -423,7 +712,7 @@ class _SectionTitle extends StatelessWidget {
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w700,
-        color: AppColors.primaryBlue,
+        color: AppColors.folhetoTitle,
       ),
     );
   }
@@ -544,8 +833,8 @@ class _EditableTableWidget extends StatelessWidget {
                             decoration: const InputDecoration(
                               isDense: true,
                               border: OutlineInputBorder(),
-                              contentPadding:
-                                  EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 10),
                             ),
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontSize: 13,
