@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:appser/screens/help.dart';
-import 'package:appser/screens/home.dart';
 import 'package:appser/screens/home/widgets/session_titles.dart';
 import 'package:appser/services/session_unlock_service.dart';
 import 'package:appser/sessions/session_hub_screen.dart';
@@ -16,37 +15,37 @@ class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({super.key});
 
   static const double _barHeight = 72;
-  static const double _iconHeight = 26;
-  static const double _iconScale = 1.15;
+  static const double _iconHeight = 30;
+  static const double _iconScale = 1.22;
   static const double _labelFontSize = 12;
   static const double _itemWidth = 88;
   static const double _itemGap = 18;
 
   static const String _homeRouteName = 'home';
-  static const String _sessionsRouteName = 'sessions';
   static const String _helpRouteName = 'help';
 
   String? _currentRouteName(BuildContext context) {
     return ModalRoute.of(context)?.settings.name;
   }
 
+  Route<void> _buildInstantRoute(Widget page, {required String name}) {
+    return PageRouteBuilder<void>(
+      settings: RouteSettings(name: name),
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      pageBuilder: (_, __, ___) => page,
+    );
+  }
+
   void _goToRoot(BuildContext context, Widget page, {required String name}) {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        settings: RouteSettings(name: name),
-        builder: (_) => page,
-      ),
+      _buildInstantRoute(page, name: name),
       (route) => false,
     );
   }
 
   void _push(BuildContext context, Widget page, {required String name}) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        settings: RouteSettings(name: name),
-        builder: (_) => page,
-      ),
-    );
+    Navigator.of(context).push(_buildInstantRoute(page, name: name));
   }
 
   Future<Map<String, bool>> _fetchSessionStatus(BuildContext context) async {
@@ -67,7 +66,8 @@ class AppBottomNavBar extends StatelessWidget {
 
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxWidth),
             child: Material(
@@ -150,7 +150,8 @@ class AppBottomNavBar extends StatelessWidget {
                     const rowHeight = 64.0;
                     final desiredListHeight = unlocked.length * rowHeight;
                     final maxListHeight = screen.height * 0.5;
-                    final listHeight = desiredListHeight.clamp(0.0, maxListHeight);
+                    final listHeight =
+                        desiredListHeight.clamp(0.0, maxListHeight);
 
                     return Column(
                       mainAxisSize: MainAxisSize.min,
@@ -225,6 +226,7 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     final labelStyle = TextStyle(
       fontSize: _labelFontSize,
       fontWeight: FontWeight.w400,
@@ -290,65 +292,70 @@ class AppBottomNavBar extends StatelessWidget {
 
     return Material(
       color: Colors.white,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          height: _barHeight,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: const Border(
-              top: BorderSide(color: Colors.black12),
+      child: Container(
+        height: _barHeight + bottomInset,
+        padding: EdgeInsets.only(bottom: bottomInset),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: const Border(
+            top: BorderSide(color: Colors.black12),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              navItem(
-                assetPath: 'assets/casa.svg',
-                label: 'Home',
-                iconScale: 0.92,
-                iconHeight: 22,
-                iconColor: const Color(0xFF60BFCD),
-                onTap: () {
-                  if (_currentRouteName(context) == _homeRouteName) {
-                    return;
-                  }
-                  _goToRoot(context, const MainPage(), name: _homeRouteName);
-                },
-              ),
-              const SizedBox(width: _itemGap),
-              navItem(
-                assetPath: 'assets/folha.svg',
-                label: 'Sessões',
-                iconScale: 0.92,
-                iconHeight: 22,
-                iconColor: const Color(0xFF60BFCD),
-                onTap: () {
-                  _openSessionsModal(context);
-                },
-              ),
-              const SizedBox(width: _itemGap),
-              navItem(
-                assetPath: 'assets/ajuda.svg',
-                label: 'Ajuda',
-                iconScale: 0.95,
-                iconColor: const Color(0xFF60BFCD),
-                onTap: () {
-                  if (_currentRouteName(context) == _helpRouteName) {
-                    return;
-                  }
-                  _push(context, const HelpScreen(), name: _helpRouteName);
-                },
-              ),
-            ],
-          ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            navItem(
+              assetPath: 'assets/casa.svg',
+              label: 'Home',
+              iconScale: 1.0,
+              iconHeight: 25,
+              iconColor: const Color(0xFF60BFCD),
+              onTap: () {
+                if (_currentRouteName(context) == _homeRouteName) {
+                  return;
+                }
+
+                if (_currentRouteName(context) == _helpRouteName &&
+                    Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                  return;
+                }
+
+                _goToRoot(context, const MainPage(), name: _homeRouteName);
+              },
+            ),
+            const SizedBox(width: _itemGap),
+            navItem(
+              assetPath: 'assets/folha.svg',
+              label: 'Sessões',
+              iconScale: 1.0,
+              iconHeight: 25,
+              iconColor: const Color(0xFF60BFCD),
+              onTap: () {
+                _openSessionsModal(context);
+              },
+            ),
+            const SizedBox(width: _itemGap),
+            navItem(
+              assetPath: 'assets/ajuda.svg',
+              label: 'Ajuda',
+              iconScale: 1.02,
+              iconColor: const Color(0xFF60BFCD),
+              onTap: () {
+                if (_currentRouteName(context) == _helpRouteName) {
+                  return;
+                }
+                _push(context, const HelpScreen(), name: _helpRouteName);
+              },
+            ),
+          ],
         ),
       ),
     );

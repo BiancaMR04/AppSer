@@ -65,6 +65,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
   late Future<_HomeData> _homeData;
+  _HomeData? _cachedHomeData;
 
   static const _lastOpenedSessionKey = 'home.lastOpenedSessionIndex';
 
@@ -72,7 +73,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _homeData = _fetchHomeData();
+    _homeData = _fetchAndCacheHomeData();
 
     // Salvaguarda: se a Home for aberta sem usuário logado,
     // força volta para o gate de autenticação.
@@ -122,7 +123,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       await context.read<SessionUnlockService>().ensureSessionUnlocks(uid: uid);
     }
 
-    final sessionStatus = await context.read<HomeController>().fetchSessionStatus();
+    final sessionStatus =
+        await context.read<HomeController>().fetchSessionStatus();
     final stats = await _fetchStats(sessionStatus: sessionStatus);
 
     return _HomeData(
@@ -131,10 +133,108 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     );
   }
 
+  Future<_HomeData> _fetchAndCacheHomeData() async {
+    final data = await _fetchHomeData();
+    _cachedHomeData = data;
+    return data;
+  }
+
   void _refreshSessions() {
     setState(() {
-      _homeData = _fetchHomeData();
+      _homeData = _fetchAndCacheHomeData();
     });
+  }
+
+  Widget _buildHomeContent({
+    required BuildContext context,
+    required _HomeData data,
+  }) {
+    final sessionStatus = data.sessionStatus;
+    final stats = data.stats;
+    final greetingName = _firstNameOf(stats.userName);
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = screenWidth < 380 ? 16.0 : 24.0;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        left: horizontalPadding,
+        right: horizontalPadding,
+        top: 16,
+        bottom: 0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _GreetingBar(
+            greetingName: greetingName,
+            onLogout: _logoutAndGoToLogin,
+          ),
+          const SizedBox(height: 28),
+          _HomeMainCard(
+            onResume: () => _resumeLastPractice(
+              context: context,
+              sessionStatus: sessionStatus,
+            ),
+            completionProgress: stats.completionProgress,
+          ),
+          const SizedBox(height: 16),
+          _SupportShortcutsRow(
+            onOpenWelcome: () => _openSession(
+              context: context,
+              index: 0,
+              sessionStatus: sessionStatus,
+            ),
+            onOpenRecommendations: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const RecomendacoesGeraisView(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricCard(
+                  value: '${stats.streakDays}',
+                  label: 'Dias em Sequência',
+                  iconAsset: 'assets/sol.svg',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _MetricCard(
+                  value: '${stats.audioMinutes}',
+                  label: 'Minutos meditados',
+                  iconAsset: 'assets/meditacao.svg',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _MetricCard(
+                  value: '${stats.completedSessions}',
+                  label: 'Medalhas',
+                  iconAsset: 'assets/coracao.svg',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _SessionsList(
+            sessionStatus: sessionStatus,
+            completedSessionIndexes: stats.completedSessionIndexes,
+            onTapSession: (index) => _openSession(
+              context: context,
+              index: index,
+              sessionStatus: sessionStatus,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _openSession({
@@ -550,8 +650,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         }
 
         // Progresso global: tarefas concluídas / total de tarefas.
-        final taskProgress =
-            totalTasks == 0 ? 0.0 : (completedTasks / totalTasks).clamp(0.0, 1.0);
+        final taskProgress = totalTasks == 0
+            ? 0.0
+            : (completedTasks / totalTasks).clamp(0.0, 1.0);
 
         final completedSessions = completedSessionIndexes.length;
 
@@ -587,106 +688,24 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           child: FutureBuilder<_HomeData>(
             future: _homeData,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              final data = snapshot.data ?? _cachedHomeData;
+
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  data == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (snapshot.hasError) {
+              if (snapshot.hasError && data == null) {
                 return Center(
                   child: Text('Erro ao carregar sessões: ${snapshot.error}'),
                 );
               }
-              final data = snapshot.data;
               if (data == null) {
                 return const Center(
                   child: Text('Dados de sessão não disponíveis.'),
                 );
               }
 
-              final sessionStatus = data.sessionStatus;
-              final stats = data.stats;
-              final greetingName = _firstNameOf(stats.userName);
-
-              final screenWidth = MediaQuery.sizeOf(context).width;
-              final horizontalPadding = screenWidth < 380 ? 16.0 : 24.0;
-
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _GreetingBar(
-                      greetingName: greetingName,
-                      onLogout: _logoutAndGoToLogin,
-                    ),
-                    const SizedBox(height: 28),
-                    _HomeMainCard(
-                      onResume: () => _resumeLastPractice(
-                        context: context,
-                        sessionStatus: sessionStatus,
-                      ),
-                      completionProgress: stats.completionProgress,
-                    ),
-                    const SizedBox(height: 16),
-                    _SupportShortcutsRow(
-                      onOpenWelcome: () => _openSession(
-                        context: context,
-                        index: 0,
-                        sessionStatus: sessionStatus,
-                      ),
-                      onOpenRecommendations: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RecomendacoesGeraisView(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _MetricCard(
-                            value: '${stats.streakDays}',
-                            label: 'Dias em Sequência',
-                            iconAsset: 'assets/sol.svg',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _MetricCard(
-                            value: '${stats.audioMinutes}',
-                            label: 'Minutos meditados',
-                            iconAsset: 'assets/meditacao.svg',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _MetricCard(
-                            value: '${stats.completedSessions}',
-                            label: 'Medalhas',
-                            iconAsset: 'assets/coracao.svg',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _SessionsList(
-                      sessionStatus: sessionStatus,
-                      completedSessionIndexes: stats.completedSessionIndexes,
-                      onTapSession: (index) => _openSession(
-                        context: context,
-                        index: index,
-                        sessionStatus: sessionStatus,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              );
+              return _buildHomeContent(context: context, data: data);
             },
           ),
         ),
@@ -829,7 +848,8 @@ class _HomeMainCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: buttonMaxWidth),
-                      child: SizedBox(width: double.infinity, child: resumeButton),
+                      child:
+                          SizedBox(width: double.infinity, child: resumeButton),
                     ),
                   ],
                 ),
