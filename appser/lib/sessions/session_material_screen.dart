@@ -3,12 +3,15 @@ import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:appser/resources/docs/folheto_text_catalog.dart';
 import 'package:appser/resources/docs/folheto_text_view.dart';
+import 'package:appser/resources/docs/material_text_catalog.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/images/image_view.dart';
 import 'package:appser/resources/images/multi_image_view.dart';
+import 'package:appser/resources/images/posturas_sentadas_view.dart';
 import 'package:appser/sessions/session_catalog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:appser/core/theme/app_colors.dart';
 import 'package:appser/sessions/widgets/session_header.dart';
@@ -71,6 +74,11 @@ class SessionMaterialScreen extends StatelessWidget {
                                 displayTitle(item.pdfTitle).toLowerCase();
                             final pathLower = item.pdfPath.toLowerCase();
 
+                            final isSession2PosturasSentada =
+                              sessionNumber == 2 &&
+                                (normalizedTitle.contains('posturas sentada') ||
+                                  normalizedPdfTitle.contains('posturas sentada'));
+
                             final isImagePath = pathLower.endsWith('.png') ||
                                 pathLower.endsWith('.jpg') ||
                                 pathLower.endsWith('.jpeg') ||
@@ -93,6 +101,12 @@ class SessionMaterialScreen extends StatelessWidget {
                                 ? FolhetoTextCatalog.forSession(sessionNumber)
                                 : null;
 
+                            final materialText = MaterialTextCatalog.forMaterial(
+                              sessionNumber: sessionNumber,
+                              normalizedTitle: normalizedTitle,
+                              normalizedPdfTitle: normalizedPdfTitle,
+                            );
+
                             if (kDebugMode) {
                               debugPrint(
                                 'Material de apoio: title=${item.title} pdfTitle=${item.pdfTitle} path=${item.pdfPath} isFolheto=$isFolheto hasText=${folhetoText != null}',
@@ -100,7 +114,7 @@ class SessionMaterialScreen extends StatelessWidget {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Abrindo: ${isFolheto ? 'TEXTO' : (isImagePath ? 'IMAGEM' : 'PDF')}\n${item.pdfPath}',
+                                    'Abrindo: ${(isFolheto || materialText != null) ? 'TEXTO' : (isSession2PosturasSentada ? 'TEXTO+IMG' : (isImagePath ? 'IMAGEM' : 'PDF'))}\n${item.pdfPath}',
                                   ),
                                   duration: const Duration(seconds: 3),
                                 ),
@@ -111,12 +125,30 @@ class SessionMaterialScreen extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (context) {
+                                  if (isSession2PosturasSentada) {
+                                    return PosturasSentadasViewerScreen(
+                                      title: item.pdfTitle,
+                                      sessaoId: sessionId,
+                                      itemId: item.pdfPath,
+                                      isSupplementary: true,
+                                    );
+                                  }
+
                                   if (isFolheto) {
                                     final text = folhetoText ??
                                         'Conteúdo do folheto ainda não foi inserido para a Sessão $sessionNumber.';
                                     return FolhetoTextViewerScreen(
                                       title: item.pdfTitle,
                                       text: text,
+                                      sessaoId: sessionId,
+                                      itemId: item.title,
+                                    );
+                                  }
+
+                                  if (materialText != null) {
+                                    return FolhetoTextViewerScreen(
+                                      title: item.pdfTitle,
+                                      text: materialText,
                                       sessaoId: sessionId,
                                       itemId: item.title,
                                     );
@@ -166,8 +198,8 @@ class SessionMaterialScreen extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                Image.asset(
-                                  'assets/livro.png',
+                                SvgPicture.asset(
+                                  'assets/livro.svg',
                                   width: 22,
                                   height: 22,
                                   fit: BoxFit.contain,

@@ -46,8 +46,8 @@ class SessionUnlockService {
       if (data == null) return;
 
       // Regra: desbloqueio por tempo desde o cadastro/início.
-      // Preferimos createdAt; se não existir, usamos dataInicio.
-      final base = _parseDate(data['createdAt']) ?? _parseDate(data['dataInicio']);
+      // Preferimos dataInicio; se nao existir, usamos createdAt.
+      final base = _parseDate(data['dataInicio']) ?? _parseDate(data['createdAt']);
       if (base == null) return;
 
       // Considera apenas dia do calendário (meia-noite), para não depender do horário.
@@ -55,8 +55,7 @@ class SessionUnlockService {
       final baseLocal = base.toLocal();
       final today = DateTime(now.year, now.month, now.day);
       final baseDay = DateTime(baseLocal.year, baseLocal.month, baseLocal.day);
-      final rawDaysSince = today.difference(baseDay).inDays;
-      final daysSince = rawDaysSince < 0 ? 0 : rawDaysSince;
+      final daysSince = today.difference(baseDay).inDays;
 
       bool shouldUnlockSession(int sessionIndex) {
         if (sessionIndex <= 1) return true;
@@ -75,7 +74,11 @@ class SessionUnlockService {
           SessionDefaults.defaultSessionStatus[key] ?? false,
         );
 
-        if (shouldUnlockSession(sessionIndex) && current != true) {
+        if (daysSince < 0) {
+          if (current != false) {
+            updates[key] = false;
+          }
+        } else if (shouldUnlockSession(sessionIndex) && current != true) {
           updates[key] = true;
         }
       }

@@ -54,7 +54,8 @@ class UserSessionsFirestoreDataSource {
         return null;
       }
 
-      final baseDate = parseDate(data['createdAt']) ?? parseDate(data['dataInicio']);
+      final baseDate =
+          parseDate(data['dataInicio']) ?? parseDate(data['createdAt']);
 
       int? daysSinceStart;
       if (baseDate != null) {
@@ -63,8 +64,7 @@ class UserSessionsFirestoreDataSource {
         final baseLocal = baseDate.toLocal();
         final today = DateTime(now.year, now.month, now.day);
         final baseDay = DateTime(baseLocal.year, baseLocal.month, baseLocal.day);
-        final diff = today.difference(baseDay).inDays;
-        daysSinceStart = diff < 0 ? 0 : diff;
+        daysSinceStart = today.difference(baseDay).inDays;
       }
 
       final status = <String, bool>{
@@ -78,6 +78,15 @@ class UserSessionsFirestoreDataSource {
         'session7': readBool('session7', false),
         'session8': readBool('session8', false),
       };
+
+      if (daysSinceStart != null && daysSinceStart < 0) {
+        for (var sessionIndex = 0;
+            sessionIndex < SessionDefaults.totalSessions;
+            sessionIndex++) {
+          status['session$sessionIndex'] = false;
+        }
+        return status;
+      }
 
       // Auto-unlock: Sessão 2 após 7 dias, Sessão 3 após 14, etc.
       // Não depende de conseguir escrever no Firestore.

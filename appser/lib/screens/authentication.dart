@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:appser/compenents/decoration_authentication.dart';
+import 'package:appser/core/auth/auth_error_messages.dart';
 import 'package:appser/core/theme/app_colors.dart';
 import 'package:appser/services/resetpassword.dart';
 import 'package:appser/snackbars/first_snack.dart';
@@ -64,6 +65,22 @@ class _AuthenticationState extends State<Authentication> {
 
   void _setLoginError(String message) {
     final lower = message.toLowerCase();
+    final fields = AuthErrorMessages.fieldsFor(message);
+    final credentialError = lower.contains('incorret') ||
+        lower.contains('nao encontramos') ||
+        lower.contains('n\u00E3o encontramos') ||
+        lower.contains('e-mail ou senha');
+
+    setState(() {
+      _loginErrorMessage = message;
+      _emailLoginError = fields.email || credentialError;
+      _passwordLoginError = fields.password ||
+          lower.contains('senha incorreta') ||
+          lower.contains('e-mail ou senha');
+    });
+    return;
+    /*
+
     bool emailError = false;
     bool passwordError = false;
     String friendly;
@@ -89,6 +106,7 @@ class _AuthenticationState extends State<Authentication> {
       _emailLoginError = emailError;
       _passwordLoginError = passwordError;
     });
+    */
   }
 
   bool _validateLoginInputs() {
@@ -108,7 +126,7 @@ class _AuthenticationState extends State<Authentication> {
     bool passwordError = false;
     String? message;
 
-    if (email.isEmpty || !email.contains('@')) {
+    if (email.isEmpty || !AuthErrorMessages.isValidEmail(email)) {
       emailError = true;
     }
 
@@ -117,11 +135,14 @@ class _AuthenticationState extends State<Authentication> {
     }
 
     if (emailError && passwordError) {
-      message = 'E-mail e senha errados, tente novamente!';
+      message = 'Informe um e-mail valido e uma senha.';
     } else if (emailError) {
-      message = 'E-mail errado, tente novamente!';
+      message =
+          email.isEmpty ? 'Informe seu e-mail.' : 'E-mail invalido.';
     } else if (passwordError) {
-      message = 'Senha errada, tente novamente!';
+      message = password.isEmpty
+          ? 'Informe sua senha.'
+          : 'A senha deve ter pelo menos 6 caracteres.';
     }
 
     if (message == null) {
@@ -369,8 +390,16 @@ Widget build(BuildContext context) {
 
     if (!_validateLoginInputs()) return;
 
-    // LOGIN
-    String? erro = await _authController.login(email: email, password: password);
+    String? erro;
+    try {
+      erro = await _authController.login(email: email, password: password);
+    } catch (e) {
+      erro = AuthErrorMessages.fromException(
+        e,
+        operation: AuthOperation.login,
+      );
+    }
+
     if (erro == null) {
       await _persistRememberedUser(email: email);
       showSnackBar(

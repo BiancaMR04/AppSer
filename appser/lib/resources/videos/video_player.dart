@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
@@ -10,6 +12,7 @@ import 'package:provider/provider.dart';
 
 import '../../presentation/controllers/storage_url_controller.dart';
 import '../../screens/user_tracking_service.dart';
+import 'app_video_cache_manager.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String videoPath;
@@ -54,6 +57,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _initializePlayer() async {
+    VideoPlayerController? controller;
+
     try {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
@@ -63,15 +68,29 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           .getDownloadUrl(widget.videoPath);
 
       if (videoUrl.isNotEmpty) {
-        _videoPlayerController = VideoPlayerController.network(
-          videoUrl,
+        final videoFile = await AppVideoCacheManager.instance.getVideoFile(
+          videoUrl: videoUrl,
+          videoPath: widget.videoPath,
+        );
+
+        if (!mounted) return;
+
+        controller = VideoPlayerController.file(
+          File(videoFile.path),
           videoPlayerOptions: VideoPlayerOptions(
             allowBackgroundPlayback: true,
             mixWithOthers: true,
           ),
         );
+        await controller.initialize();
+
+        if (!mounted) {
+          await controller.dispose();
+          return;
+        }
+
+        _videoPlayerController = controller;
         _hasController = true;
-        await _videoPlayerController.initialize();
 
         _lastDuration = _videoPlayerController.value.duration;
         _videoPlayerController.addListener(_onVideoTick);
@@ -85,6 +104,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         print('Erro: URL do vídeo está vazia');
       }
     } catch (e) {
+      await controller?.dispose();
+      if (!mounted) return;
+
       print('Erro ao inicializar o player de vídeo: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erro ao carregar o vídeo')),

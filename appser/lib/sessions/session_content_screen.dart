@@ -1,18 +1,22 @@
+import 'dart:async';
+
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:appser/resources/audios/audio_player.dart';
 import 'package:appser/resources/docs/inline_text_view.dart';
+import 'package:appser/resources/docs/folheto_text_view.dart';
+import 'package:appser/resources/docs/material_text_catalog.dart';
 import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/videos/video_player.dart';
 import 'package:appser/screens/user_tracking_service.dart';
 import 'package:appser/services/practice_resume_service.dart';
 import 'package:appser/sessions/session_catalog.dart';
+import 'package:appser/sessions/praticando_em_casa_text_catalog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:appser/core/theme/app_colors.dart';
-import 'package:appser/presentation/widgets/app_elevated_row_button.dart';
 import 'package:appser/sessions/widgets/session_header.dart';
 
 Widget _assetIcon(
@@ -67,8 +71,8 @@ class SessionContentScreen extends StatelessWidget {
         case SessionContentType.video:
           return 'assets/video.svg';
         case SessionContentType.pdf:
-          if (item.itemId == 'praticando_em_casa') return 'assets/pessoam.png';
-          return 'assets/livro.png';
+          if (item.itemId == 'praticando_em_casa') return 'assets/pessoam.svg';
+          return 'assets/livro.svg';
       }
     }
 
@@ -109,8 +113,8 @@ class SessionContentScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final item = items[index];
                       final iconColor = switch (item.type) {
-                        SessionContentType.audio => const Color(0xFF2F7888),
-                        SessionContentType.video => const Color(0xFF2F7888),
+                        SessionContentType.audio => AppColors.navbarTitle,
+                        SessionContentType.video => AppColors.navbarTitle,
                         SessionContentType.pdf => null,
                       };
 
@@ -123,10 +127,12 @@ class SessionContentScreen extends StatelessWidget {
                               itemId: item.itemId,
                             );
 
-                            await UserTrackingService.registrarClique(
-                              sessaoId: sessionId,
-                              tipo: _trackingTypeFor(item.type),
-                              itemId: item.itemId,
+                            unawaited(
+                              UserTrackingService.registrarClique(
+                                sessaoId: sessionId,
+                                tipo: _trackingTypeFor(item.type),
+                                itemId: item.itemId,
+                              ),
                             );
 
                             final Widget destination;
@@ -150,35 +156,46 @@ class SessionContentScreen extends StatelessWidget {
                                 );
                                 break;
                               case SessionContentType.pdf:
-                                if (sessionNumber == 1 &&
-                                    item.itemId == 'praticando_em_casa') {
-                                  destination = const InlineTextViewerScreen(
-                                    title: 'Praticando em Casa',
-                                    text:
-                                        'PRATICANDO EM CASA DA SEGUINTE FORMA\n'
-                                        'Momentos para reflexão\n'
-                                        '- Lendo a apostila\n'
-                                        '- Completando a planilha\n'
-                                        '\n'
-                                        'Momentos para experiência\n'
-                                        '- Trazendo mindfulness para a vida diária (refeições)\n'
-                                        '- Praticando escaneamento corporal 1x ao dia\n'
-                                        '\n'
-                                        'Próxima semana: trazer 5 livros (tamanhos variados)',
-                                    sessaoId: 'sessao_1',
-                                    itemId: 'praticando_em_casa',
-                                    isSupplementary: false,
-                                  );
-                                } else {
-                                  destination = PdfViewerScreen(
-                                    pdfPath: item.path,
-                                    downloadPath:
-                                        item.downloadPath ?? item.path,
-                                    pdfTitle: item.viewerTitle,
+                                if (item.itemId == 'praticando_em_casa') {
+                                  destination = InlineTextViewerScreen(
+                                    title: item.viewerTitle,
+                                    text: PraticandoEmCasaTextCatalog.forSession(
+                                      sessionNumber,
+                                    ),
                                     sessaoId: sessionId,
                                     itemId: item.itemId,
                                     isSupplementary: false,
                                   );
+                                } else {
+                                  final normalizedTitle =
+                                      displayTitle(item.title).toLowerCase();
+                                  final normalizedPdfTitle =
+                                      item.viewerTitle.toLowerCase();
+                                  final materialText =
+                                      MaterialTextCatalog.forMaterial(
+                                    sessionNumber: sessionNumber,
+                                    normalizedTitle: normalizedTitle,
+                                    normalizedPdfTitle: normalizedPdfTitle,
+                                  );
+
+                                  if (materialText != null) {
+                                    destination = FolhetoTextViewerScreen(
+                                      title: item.viewerTitle,
+                                      text: materialText,
+                                      sessaoId: sessionId,
+                                      itemId: item.itemId,
+                                    );
+                                  } else {
+                                    destination = PdfViewerScreen(
+                                      pdfPath: item.path,
+                                      downloadPath:
+                                          item.downloadPath ?? item.path,
+                                      pdfTitle: item.viewerTitle,
+                                      sessaoId: sessionId,
+                                      itemId: item.itemId,
+                                      isSupplementary: false,
+                                    );
+                                  }
                                 }
                                 break;
                             }

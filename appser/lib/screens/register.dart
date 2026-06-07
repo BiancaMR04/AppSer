@@ -1,4 +1,5 @@
 import 'package:appser/compenents/decoration_authentication.dart';
+import 'package:appser/core/auth/auth_error_messages.dart';
 import 'package:appser/core/formatters/cpf_input_formatter.dart';
 import 'package:appser/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -167,8 +168,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = _passwordCtrl.text;
     final confirm = _confirmPasswordCtrl.text;
 
-    if (name.isEmpty) {
-      _setError(message: 'Informe seu nome.', name: true);
+    if (name.isEmpty || name.length < 2) {
+      _setError(message: 'Informe seu nome completo.', name: true);
       return false;
     }
 
@@ -177,7 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return false;
     }
 
-    if (email.isEmpty || !email.contains('@')) {
+    if (email.isEmpty || !AuthErrorMessages.isValidEmail(email)) {
       _setError(message: 'E-mail inválido.', email: true);
       return false;
     }
@@ -187,6 +188,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         message: 'A senha é muito fraca. Use pelo menos 6 caracteres.',
         password: true,
       );
+      return false;
+    }
+
+    if (confirm.isEmpty) {
+      _setError(message: 'Confirme sua senha.', confirmPassword: true);
       return false;
     }
 
@@ -233,14 +239,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
-      final lower = erro.toLowerCase();
-      if (lower.contains('e-mail') || lower.contains('email')) {
+      final fields = AuthErrorMessages.fieldsFor(erro);
+      if (fields.email) {
         _setError(message: erro, email: true);
-      } else if (lower.contains('senha')) {
+      } else if (fields.password) {
         _setError(message: erro, password: true);
       } else {
         _setError(message: erro);
       }
+    } catch (e) {
+      if (!mounted) return;
+      _setError(
+        message: AuthErrorMessages.fromException(
+          e,
+          operation: AuthOperation.register,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
