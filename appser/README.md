@@ -1,3 +1,4 @@
-# appser
+# AppSer
 
-A new Flutter project.
+Consulte o [guia de instalacao e execucao](../README.md) na raiz do
+repositorio.
