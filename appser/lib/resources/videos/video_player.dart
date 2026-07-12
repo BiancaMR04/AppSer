@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:appser/presentation/widgets/app_background.dart';
@@ -12,6 +13,8 @@ import 'package:provider/provider.dart';
 
 import '../../presentation/controllers/storage_url_controller.dart';
 import '../../screens/user_tracking_service.dart';
+import '../../services/activity_auto_advance_settings_service.dart';
+import '../../sessions/session_activity_navigation.dart';
 import 'app_video_cache_manager.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
@@ -47,6 +50,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   bool _hasController = false;
 
   bool _wasCompleted = false;
+  bool _didHandleCompletion = false;
   Duration _lastPosition = Duration.zero;
   Duration? _lastDuration;
 
@@ -125,7 +129,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     final isCompletedNow = duration > Duration.zero && v.position >= duration;
 
     if (isCompletedNow && !_wasCompleted) {
-      _logComplete();
+      unawaited(_completeAndMaybeAdvance());
     }
 
     _wasCompleted = isCompletedNow;
@@ -145,6 +149,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       path: widget.videoPath,
       durationSeconds: _lastDuration?.inSeconds,
       mode: 'end',
+    );
+  }
+
+  Future<void> _completeAndMaybeAdvance() async {
+    if (_didHandleCompletion) return;
+    _didHandleCompletion = true;
+    final navigator = Navigator.of(context);
+
+    await _logComplete();
+
+    if (widget.isSupplementary) return;
+    final autoAdvance = await ActivityAutoAdvanceSettingsService.isEnabled();
+    if (!autoAdvance || !mounted) return;
+
+    await openNextSessionContentItemWithNavigator(
+      navigator: navigator,
+      sessaoId: widget.sessaoId,
+      itemId: widget.itemId,
     );
   }
 
@@ -450,9 +472,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             final isReady =
                 _hasController && _videoPlayerController.value.isInitialized;
 
-            final videoAspectRaw = isReady
-                ? _videoPlayerController.value.aspectRatio
-                : (16 / 9);
+            final videoAspectRaw =
+                isReady ? _videoPlayerController.value.aspectRatio : (16 / 9);
             final targetAspectRatio =
                 (videoAspectRaw.isFinite && videoAspectRaw > 0)
                     ? videoAspectRaw
@@ -524,8 +545,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                 child: Center(
                                   child: AspectRatio(
                                     aspectRatio: targetAspectRatio,
-                                    child:
-                                        VideoPlayer(_videoPlayerController),
+                                    child: VideoPlayer(_videoPlayerController),
                                   ),
                                 ),
                               )
@@ -558,7 +578,8 @@ class _FullscreenVideoPlayerRoute extends StatefulWidget {
       _FullscreenVideoPlayerRouteState();
 }
 
-class _FullscreenVideoPlayerRouteState extends State<_FullscreenVideoPlayerRoute> {
+class _FullscreenVideoPlayerRouteState
+    extends State<_FullscreenVideoPlayerRoute> {
   @override
   void initState() {
     super.initState();
@@ -595,8 +616,10 @@ class _FullscreenVideoPlayerRouteState extends State<_FullscreenVideoPlayerRoute
                 child: ValueListenableBuilder<VideoPlayerValue>(
                   valueListenable: widget.controller,
                   builder: (context, value, child) {
-                    final raw = value.isInitialized ? value.aspectRatio : 16 / 9;
-                    final aspectRatio = (raw.isFinite && raw > 0) ? raw : 16 / 9;
+                    final raw =
+                        value.isInitialized ? value.aspectRatio : 16 / 9;
+                    final aspectRatio =
+                        (raw.isFinite && raw > 0) ? raw : 16 / 9;
 
                     if (!value.isInitialized) {
                       return const CircularProgressIndicator();

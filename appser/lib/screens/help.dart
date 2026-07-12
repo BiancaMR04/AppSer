@@ -2,6 +2,7 @@ import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/services/activity_auto_advance_settings_service.dart';
 import 'package:flutter/material.dart';
 
 class _FaqItem {
@@ -14,10 +15,39 @@ class _FaqItem {
   });
 }
 
-class HelpScreen extends StatelessWidget {
+class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
 
+  @override
+  State<HelpScreen> createState() => _HelpScreenState();
+}
+
+class _HelpScreenState extends State<HelpScreen> {
   static const _dividerCyan = Color(0xFF60BFCD);
+  bool _autoAdvanceEnabled = false;
+  bool _loadingAutoAdvance = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAutoAdvance();
+  }
+
+  Future<void> _loadAutoAdvance() async {
+    final enabled = await ActivityAutoAdvanceSettingsService.isEnabled();
+    if (!mounted) return;
+    setState(() {
+      _autoAdvanceEnabled = enabled;
+      _loadingAutoAdvance = false;
+    });
+  }
+
+  Future<void> _setAutoAdvance(bool enabled) async {
+    setState(() {
+      _autoAdvanceEnabled = enabled;
+    });
+    await ActivityAutoAdvanceSettingsService.setEnabled(enabled);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +69,7 @@ class HelpScreen extends StatelessWidget {
       ),
       _FaqItem(
         question: 'Como entrar em contato com suporte?',
-        answer:
-            'Use o e-mail abaixo para falar com a nossa equipe.',
+        answer: 'Use o e-mail abaixo para falar com a nossa equipe.',
       ),
     ];
 
@@ -51,6 +80,49 @@ class HelpScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
             children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Avancar atividades automaticamente',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF232323),
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Quando um audio ou video terminar, o app abre a proxima atividade da mesma sessao. Ao chegar ao fim da sessao, ele nao abre o Material de Apoio.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.35,
+                              color: Color(0xFF232323),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: _autoAdvanceEnabled,
+                      activeColor: const Color(0xFF2F7888),
+                      onChanged: _loadingAutoAdvance ? null : _setAutoAdvance,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
               const Text(
                 'Perguntas frequentes',
                 style: TextStyle(
@@ -67,8 +139,8 @@ class HelpScreen extends StatelessWidget {
                 ),
                 child: Theme(
                   data: Theme.of(context).copyWith(
-                        dividerColor: Colors.transparent,
-                      ),
+                    dividerColor: Colors.transparent,
+                  ),
                   child: Column(
                     children: [
                       for (int i = 0; i < faqs.length; i++) ...[

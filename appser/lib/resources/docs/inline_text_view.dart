@@ -7,6 +7,7 @@ import 'package:appser/screens/user_tracking_service.dart';
 import 'package:appser/core/theme/app_colors.dart';
 import 'package:appser/resources/docs/folheto_text_catalog.dart';
 import 'package:appser/resources/docs/folheto_text_view.dart';
+import 'package:appser/sessions/session_activity_navigation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -100,7 +101,7 @@ class _InlineTextViewerScreenState extends State<InlineTextViewerScreen> {
       MaterialPageRoute(
         builder: (context) => FolhetoTextViewerScreen(
           title: folhetoTitle,
-          text: FolhetoTextCatalog.forSession(sessionNumber) ?? 
+          text: FolhetoTextCatalog.forSession(sessionNumber) ??
               'Conteúdo do folheto ainda não foi inserido para a Sessão $sessionNumber.',
           sessaoId: widget.sessaoId,
           itemId: 'folheto_sessao_$sessionNumber',
@@ -141,6 +142,14 @@ class _InlineTextViewerScreenState extends State<InlineTextViewerScreen> {
         debugPrint('InlineText: erro ao registrar abertura: $e');
       }
     }
+  }
+
+  Future<void> _goToNextActivity() async {
+    await openNextSessionContentItem(
+      context: context,
+      sessaoId: widget.sessaoId,
+      itemId: widget.itemId,
+    );
   }
 
   String _stripBulletPrefix(String line) {
@@ -316,7 +325,8 @@ class _InlineTextViewerScreenState extends State<InlineTextViewerScreen> {
     );
   }
 
-  Widget _buildSectionsCard(_PraticandoEmCasaParsed parsed, int sessionNumber, BuildContext context) {
+  Widget _buildSectionsCard(
+      _PraticandoEmCasaParsed parsed, int sessionNumber, BuildContext context) {
     final children = <Widget>[];
 
     if (parsed.reflection.isNotEmpty) {
@@ -346,7 +356,8 @@ class _InlineTextViewerScreenState extends State<InlineTextViewerScreen> {
       if (children.isNotEmpty) {
         children.add(const SizedBox(height: 18));
       }
-      children.add(Text('Momentos para experiência', style: _sectionTitleStyle));
+      children
+          .add(Text('Momentos para experiência', style: _sectionTitleStyle));
       for (final item in parsed.experience) {
         if (_isLinkItem(item)) {
           children.add(
@@ -488,6 +499,11 @@ class _InlineTextViewerScreenState extends State<InlineTextViewerScreen> {
     final hasStructured = parsed.reflection.isNotEmpty ||
         parsed.experience.isNotEmpty ||
         parsed.nextWeek.isNotEmpty;
+    final showNextButton = !widget.isSupplementary &&
+        hasNextSessionContentItem(
+          sessaoId: widget.sessaoId,
+          itemId: widget.itemId,
+        );
 
     return AppScaffold(
       extendBodyBehindAppBar: false,
@@ -531,6 +547,31 @@ class _InlineTextViewerScreenState extends State<InlineTextViewerScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: _buildFallbackFormattedText(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (showNextButton) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _goToNextActivity,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF60BFCD),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Ir para a proxima atividade',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),

@@ -40,6 +40,7 @@ import 'presentation/controllers/superuser_controller.dart';
 import 'firebase_options.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'screens/user_tracking_service.dart';
+import 'services/practice_notification_service.dart';
 import 'services/session_unlock_service.dart';
 
 void main() async {
@@ -74,17 +75,24 @@ class MainApp extends StatelessWidget {
 
         // Clean Architecture (incremental): Session status da Home
         Provider<UserSessionsFirestoreDataSource>(
-          create: (_) => UserSessionsFirestoreDataSource(FirebaseFirestore.instance),
+          create: (_) =>
+              UserSessionsFirestoreDataSource(FirebaseFirestore.instance),
         ),
         Provider<SessionRepository>(
           create: (context) => SessionRepositoryImpl(
             auth: FirebaseAuth.instance,
-            firestoreDataSource: context.read<UserSessionsFirestoreDataSource>(),
+            firestoreDataSource:
+                context.read<UserSessionsFirestoreDataSource>(),
           ),
         ),
         Provider<HomeController>(
           create: (context) => HomeController(
             sessionRepository: context.read<SessionRepository>(),
+          ),
+        ),
+        Provider<PracticeNotificationService>(
+          create: (context) => PracticeNotificationService(
+            homeController: context.read<HomeController>(),
           ),
         ),
 
@@ -106,7 +114,8 @@ class MainApp extends StatelessWidget {
 
         // Clean Architecture (incremental): Recuperação de senha
         Provider<PasswordRecoveryFirebaseAuthDataSource>(
-          create: (_) => PasswordRecoveryFirebaseAuthDataSource(FirebaseAuth.instance),
+          create: (_) =>
+              PasswordRecoveryFirebaseAuthDataSource(FirebaseAuth.instance),
         ),
         Provider<PasswordRecoveryRepository>(
           create: (context) => PasswordRecoveryRepositoryImpl(
@@ -121,7 +130,8 @@ class MainApp extends StatelessWidget {
 
         // Clean Architecture (incremental): Tracking de cliques/finalizações/sessoes
         Provider<UserTrackingFirestoreDataSource>(
-          create: (_) => UserTrackingFirestoreDataSource(FirebaseFirestore.instance),
+          create: (_) =>
+              UserTrackingFirestoreDataSource(FirebaseFirestore.instance),
         ),
         Provider<UserTrackingRepository>(
           create: (context) => UserTrackingRepositoryImpl(
@@ -140,7 +150,8 @@ class MainApp extends StatelessWidget {
           create: (_) => PdfStorageDownloadDataSource(FirebaseStorage.instance),
         ),
         Provider<PdfProgressFirestoreDataSource>(
-          create: (_) => PdfProgressFirestoreDataSource(FirebaseFirestore.instance),
+          create: (_) =>
+              PdfProgressFirestoreDataSource(FirebaseFirestore.instance),
         ),
         Provider<PdfViewerRepository>(
           create: (context) => PdfViewerRepositoryImpl(
@@ -156,7 +167,8 @@ class MainApp extends StatelessWidget {
 
         // Clean Architecture (incremental): Storage URL helper (áudio/vídeo/pdf url)
         Provider<StorageUrlFirebaseStorageDataSource>(
-          create: (_) => StorageUrlFirebaseStorageDataSource(FirebaseStorage.instance),
+          create: (_) =>
+              StorageUrlFirebaseStorageDataSource(FirebaseStorage.instance),
         ),
         Provider<StorageUrlRepository>(
           create: (context) => StorageUrlRepositoryImpl(
@@ -171,7 +183,8 @@ class MainApp extends StatelessWidget {
 
         // Clean Architecture (incremental): Superuser (relatório + export)
         Provider<SuperuserReportFirestoreDataSource>(
-          create: (_) => SuperuserReportFirestoreDataSource(FirebaseFirestore.instance),
+          create: (_) =>
+              SuperuserReportFirestoreDataSource(FirebaseFirestore.instance),
         ),
         Provider<SuperuserReportExcelDataSource>(
           create: (_) => SuperuserReportExcelDataSource(),
@@ -181,7 +194,8 @@ class MainApp extends StatelessWidget {
         ),
         Provider<SuperuserReportRepository>(
           create: (context) => SuperuserReportRepositoryImpl(
-            firestoreDataSource: context.read<SuperuserReportFirestoreDataSource>(),
+            firestoreDataSource:
+                context.read<SuperuserReportFirestoreDataSource>(),
             excelDataSource: context.read<SuperuserReportExcelDataSource>(),
             fileDataSource: context.read<SuperuserReportFileDataSource>(),
             sheetName: 'Relatório',
@@ -210,4 +224,3 @@ class MainApp extends StatelessWidget {
     );
   }
 }
-

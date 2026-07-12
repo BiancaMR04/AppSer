@@ -159,7 +159,8 @@ class SessionContentScreen extends StatelessWidget {
                                 if (item.itemId == 'praticando_em_casa') {
                                   destination = InlineTextViewerScreen(
                                     title: item.viewerTitle,
-                                    text: PraticandoEmCasaTextCatalog.forSession(
+                                    text:
+                                        PraticandoEmCasaTextCatalog.forSession(
                                       sessionNumber,
                                     ),
                                     sessaoId: sessionId,
@@ -184,6 +185,7 @@ class SessionContentScreen extends StatelessWidget {
                                       text: materialText,
                                       sessaoId: sessionId,
                                       itemId: item.itemId,
+                                      isSupplementary: false,
                                     );
                                   } else {
                                     destination = PdfViewerScreen(

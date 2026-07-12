@@ -6,6 +6,8 @@ import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/services/activity_auto_advance_settings_service.dart';
+import 'package:appser/sessions/session_activity_navigation.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
@@ -52,6 +54,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> with RouteAware {
   late final StreamSubscription<PlaybackState> _playbackSub;
 
   bool _didStopBecauseLeftScreen = false;
+  bool _didHandleCompletion = false;
 
   @override
   void initState() {
@@ -71,7 +74,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> with RouteAware {
       _lastProcessingState = processingState;
 
       if (isTransitionToCompleted) {
-        _logComplete();
+        _completeAndMaybeAdvance();
       }
     });
     _loadAudio();
@@ -146,6 +149,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> with RouteAware {
       path: widget.audioPath,
       durationSeconds: _lastDurationSeconds,
       mode: 'end',
+    );
+  }
+
+  Future<void> _completeAndMaybeAdvance() async {
+    if (_didHandleCompletion) return;
+    _didHandleCompletion = true;
+    final navigator = Navigator.of(context);
+
+    await _logComplete();
+
+    if (widget.isSupplementary) return;
+    final autoAdvance = await ActivityAutoAdvanceSettingsService.isEnabled();
+    if (!autoAdvance || !mounted) return;
+
+    await openNextSessionContentItemWithNavigator(
+      navigator: navigator,
+      sessaoId: widget.sessaoId,
+      itemId: widget.itemId,
     );
   }
 
@@ -314,12 +335,13 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> with RouteAware {
                     const playIconSize = 62.0;
 
                     final centerIcon = completed
-                      ? Icons.replay
-                      : isPlaying
-                        ? Icons.pause
-                        : Icons.play_arrow;
-                    final centerIconSize =
-                      centerIcon == Icons.play_arrow ? playIconSize : pauseIconSize;
+                        ? Icons.replay
+                        : isPlaying
+                            ? Icons.pause
+                            : Icons.play_arrow;
+                    final centerIconSize = centerIcon == Icons.play_arrow
+                        ? playIconSize
+                        : pauseIconSize;
 
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,

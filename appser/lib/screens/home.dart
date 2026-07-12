@@ -9,18 +9,14 @@ import 'package:appser/presentation/controllers/home_controller.dart';
 import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
-import 'package:appser/resources/audios/audio_player.dart';
-import 'package:appser/resources/docs/inline_text_view.dart';
-import 'package:appser/resources/docs/pdf_view.dart';
 import 'package:appser/resources/docs/recomendacoes_gerais_view.dart';
-import 'package:appser/resources/videos/video_player.dart';
 import 'package:appser/resources/videos/welcome_video_player.dart';
 import 'package:appser/screens/user_tracking_service.dart';
 import 'package:appser/screens/home/widgets/session_titles.dart';
 import 'package:appser/services/authetication_service.dart';
 import 'package:appser/services/practice_resume_service.dart';
 import 'package:appser/services/session_unlock_service.dart';
-import 'package:appser/sessions/praticando_em_casa_text_catalog.dart';
+import 'package:appser/sessions/session_activity_navigation.dart';
 import 'package:appser/sessions/session_catalog.dart';
 import 'package:appser/sessions/session_hub_screen.dart';
 import 'package:appser/stateChanges.dart';
@@ -126,7 +122,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       await context.read<SessionUnlockService>().ensureSessionUnlocks(uid: uid);
     }
 
-    final sessionStatus = await context.read<HomeController>().fetchSessionStatus();
+    final sessionStatus =
+        await context.read<HomeController>().fetchSessionStatus();
     final stats = await _fetchStats(sessionStatus: sessionStatus);
 
     return _HomeData(
@@ -375,47 +372,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ),
     );
 
-    final Widget destination;
-    switch (item.type) {
-      case SessionContentType.audio:
-        destination = AudioPlayerScreen(
-          audioPath: item.path,
-          audioTitle: item.viewerTitle,
-          sessaoId: sessionId,
-          itemId: item.itemId,
-          isSupplementary: false,
-        );
-        break;
-      case SessionContentType.video:
-        destination = VideoPlayerScreen(
-          videoPath: item.path,
-          videoTitle: item.viewerTitle,
-          sessaoId: sessionId,
-          itemId: item.itemId,
-          isSupplementary: false,
-        );
-        break;
-      case SessionContentType.pdf:
-        if (item.itemId == 'praticando_em_casa') {
-          destination = InlineTextViewerScreen(
-            title: item.viewerTitle,
-            text: PraticandoEmCasaTextCatalog.forSession(sessionNumber),
-            sessaoId: sessionId,
-            itemId: item.itemId,
-            isSupplementary: false,
-          );
-        } else {
-          destination = PdfViewerScreen(
-            pdfPath: item.path,
-            downloadPath: item.downloadPath ?? item.path,
-            pdfTitle: item.viewerTitle,
-            sessaoId: sessionId,
-            itemId: item.itemId,
-            isSupplementary: false,
-          );
-        }
-        break;
-    }
+    final destination = buildSessionContentDestination(
+      sessionNumber: sessionNumber,
+      item: item,
+    );
 
     await Navigator.push(
       context,
@@ -562,8 +522,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         }
 
         // Progresso global: tarefas concluídas / total de tarefas.
-        final taskProgress =
-            totalTasks == 0 ? 0.0 : (completedTasks / totalTasks).clamp(0.0, 1.0);
+        final taskProgress = totalTasks == 0
+            ? 0.0
+            : (completedTasks / totalTasks).clamp(0.0, 1.0);
 
         final completedSessions = completedSessionIndexes.length;
 
@@ -841,7 +802,8 @@ class _HomeMainCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: buttonMaxWidth),
-                      child: SizedBox(width: double.infinity, child: resumeButton),
+                      child:
+                          SizedBox(width: double.infinity, child: resumeButton),
                     ),
                   ],
                 ),

@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../screens/user_tracking_service.dart';
+import '../../sessions/session_activity_navigation.dart';
 
 class FolhetoTextViewerScreen extends StatefulWidget {
   final String title;
@@ -21,6 +22,7 @@ class FolhetoTextViewerScreen extends StatefulWidget {
   final String? sessaoId;
   final String? itemId;
   final String? scrollToSection;
+  final bool isSupplementary;
 
   const FolhetoTextViewerScreen({
     super.key,
@@ -29,6 +31,7 @@ class FolhetoTextViewerScreen extends StatefulWidget {
     this.sessaoId,
     this.itemId,
     this.scrollToSection,
+    this.isSupplementary = true,
   });
 
   @override
@@ -70,7 +73,8 @@ class _FolhetoTextViewerScreenState extends State<FolhetoTextViewerScreen> {
     if (index < 0) return; // Seção não encontrada
 
     // Estima a posição (aproximadamente 60 pixels por linha de texto)
-    final estimatedLineCount = targetText.substring(0, index).split('\n').length;
+    final estimatedLineCount =
+        targetText.substring(0, index).split('\n').length;
     final estimatedOffset = estimatedLineCount * 60.0;
 
     _scrollController.animateTo(
@@ -98,7 +102,8 @@ class _FolhetoTextViewerScreenState extends State<FolhetoTextViewerScreen> {
     super.initState();
 
     _scrollController = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSectionIfNeeded());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToSectionIfNeeded());
 
     final sessionNumber = _effectiveSessionNumber();
 
@@ -326,7 +331,7 @@ class _FolhetoTextViewerScreenState extends State<FolhetoTextViewerScreen> {
       sessaoId: sessaoId,
       tipo: 'pdf',
       itemId: itemId,
-      isSupplementary: true,
+      isSupplementary: widget.isSupplementary,
       title: widget.title,
       path: 'inline_text',
       mode: 'open',
@@ -450,6 +455,14 @@ class _FolhetoTextViewerScreenState extends State<FolhetoTextViewerScreen> {
     }
   }
 
+  Future<void> _goToNextActivity() async {
+    await openNextSessionContentItem(
+      context: context,
+      sessaoId: widget.sessaoId,
+      itemId: widget.itemId,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final effectiveSessionNumber = _effectiveSessionNumber();
@@ -462,7 +475,12 @@ class _FolhetoTextViewerScreenState extends State<FolhetoTextViewerScreen> {
     final showBodyTitle = appBarTitleText != widget.title;
 
     final showInteractiveTables =
-      !_isNeedsListMaterial && !_isSession5GuestHousePoemMaterial;
+        !_isNeedsListMaterial && !_isSession5GuestHousePoemMaterial;
+    final showNextButton = !widget.isSupplementary &&
+        hasNextSessionContentItem(
+          sessaoId: widget.sessaoId,
+          itemId: widget.itemId,
+        );
 
     const acompanhamentoTitle = 'PLANILHA DE ACOMPANHAMENTO DIÁRIO DE PRÁTICA';
     const acompanhamentoInstrucao =
@@ -505,8 +523,8 @@ class _FolhetoTextViewerScreenState extends State<FolhetoTextViewerScreen> {
 
     final showAcompanhamentoInline = (isSession5 || isSession8) &&
         inlineTextBefore != null &&
-      inlineTextAfter != null &&
-      showInteractiveTables;
+        inlineTextAfter != null &&
+        showInteractiveTables;
 
     return AppScaffold(
       extendBodyBehindAppBar: false,
@@ -732,11 +750,35 @@ class _FolhetoTextViewerScreenState extends State<FolhetoTextViewerScreen> {
                   ),
                   child: const Text(
                     'Salvar',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
+            if (showNextButton) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _goToNextActivity,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF60BFCD),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Ir para a proxima atividade',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1276,11 +1318,11 @@ class _StyledFolhetoText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const session4NeedsTitle = 'LISTA DE NECESSIDADES HUMANAS UNIVERSAIS';
-    final isSession4NeedsList = sessionNumber == 4 &&
-        text.toUpperCase().contains(session4NeedsTitle);
+    final isSession4NeedsList =
+        sessionNumber == 4 && text.toUpperCase().contains(session4NeedsTitle);
     final isSession5GuestHousePoem = sessionNumber == 5 &&
-      text.toUpperCase().contains('CASA DE HÓSPEDES') &&
-      text.toUpperCase().contains('RUMI');
+        text.toUpperCase().contains('CASA DE HÓSPEDES') &&
+        text.toUpperCase().contains('RUMI');
 
     final lines = text.replaceAll('\r\n', '\n').split('\n');
 
@@ -1496,8 +1538,9 @@ class _StyledFolhetoText extends StatelessWidget {
           continue;
         }
 
-        final isItemCandidate =
-            seenNeedsTitle && isNeedsItemLine(trimmed) && upper != session4NeedsTitle;
+        final isItemCandidate = seenNeedsTitle &&
+            isNeedsItemLine(trimmed) &&
+            upper != session4NeedsTitle;
 
         if (collectingNeedsItems) {
           if (isItemCandidate) {
@@ -2141,7 +2184,7 @@ class _StorageImageCardState extends State<_StorageImageCard> {
     super.didChangeDependencies();
     if (_isAssetPath || _isHttpUrl) return;
     _urlFuture ??=
-      context.read<StorageUrlController>().getDownloadUrl(widget.path);
+        context.read<StorageUrlController>().getDownloadUrl(widget.path);
   }
 
   @override
@@ -2159,7 +2202,8 @@ class _StorageImageCardState extends State<_StorageImageCard> {
                   filterQuality: FilterQuality.high,
                   errorBuilder: (context, error, stackTrace) {
                     if (kDebugMode) {
-                      debugPrint('Erro ao carregar asset: ${widget.path} ($error)');
+                      debugPrint(
+                          'Erro ao carregar asset: ${widget.path} ($error)');
                     }
                     return const Center(
                       child: Text(
@@ -2322,7 +2366,8 @@ class _Session7DailyActivitiesWorksheet extends StatelessWidget {
           const _Session7WorksheetPrompt(
             number: '1.',
             parts: [
-              _PromptPart('Liste atividades, pessoas e situa\u00E7\u00F5es que voc\u00EA '),
+              _PromptPart(
+                  'Liste atividades, pessoas e situa\u00E7\u00F5es que voc\u00EA '),
               _PromptPart(
                 'associe com o estresse e emo\u00E7\u00F5es desafiadoras, ou que aumentem suas d\u00FAvidas em rela\u00E7\u00E3o a si mesmo.',
                 bold: true,
@@ -2338,7 +2383,8 @@ class _Session7DailyActivitiesWorksheet extends StatelessWidget {
           const _Session7WorksheetPrompt(
             number: '2.',
             parts: [
-              _PromptPart('Liste atividades, pessoas e situa\u00E7\u00F5es que voc\u00EA '),
+              _PromptPart(
+                  'Liste atividades, pessoas e situa\u00E7\u00F5es que voc\u00EA '),
               _PromptPart(
                 'associe com prazer e que aumentem a sua autoconfian\u00E7a em rela\u00E7\u00E3o a si mesmo.',
                 bold: true,

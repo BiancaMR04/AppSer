@@ -8,8 +8,6 @@ import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
-import 'package:appser/resources/audios/audio_player.dart';
-import 'package:appser/resources/docs/inline_text_view.dart';
 import 'package:appser/resources/docs/folheto_text_catalog.dart';
 import 'package:appser/resources/docs/folheto_text_view.dart';
 import 'package:appser/resources/docs/material_text_catalog.dart';
@@ -18,14 +16,13 @@ import 'package:appser/resources/images/image_view.dart';
 import 'package:appser/resources/images/multi_image_view.dart';
 import 'package:appser/resources/images/posturas_sentadas_view.dart';
 import 'package:appser/resources/docs/recomendacoes_gerais_view.dart';
-import 'package:appser/resources/videos/video_player.dart';
 import 'package:appser/resources/videos/welcome_video_player.dart';
 import 'package:appser/screens/home/widgets/session_titles.dart';
 import 'package:appser/screens/user_tracking_service.dart';
 import 'package:appser/services/practice_resume_service.dart';
+import 'package:appser/sessions/session_activity_navigation.dart';
 import 'package:appser/sessions/session_catalog.dart';
 import 'package:appser/sessions/session_content_screen.dart';
-import 'package:appser/sessions/praticando_em_casa_text_catalog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -179,65 +176,10 @@ class _SessionHubScreenState extends State<SessionHubScreen> {
       itemId: next.itemId,
     );
 
-    final Widget destination;
-    switch (next.type) {
-      case SessionContentType.audio:
-        destination = AudioPlayerScreen(
-          audioPath: next.path,
-          audioTitle: next.viewerTitle,
-          sessaoId: sessionId,
-          itemId: next.itemId,
-          isSupplementary: false,
-        );
-        break;
-      case SessionContentType.video:
-        destination = VideoPlayerScreen(
-          videoPath: next.path,
-          videoTitle: next.viewerTitle,
-          sessaoId: sessionId,
-          itemId: next.itemId,
-          isSupplementary: false,
-        );
-        break;
-      case SessionContentType.pdf:
-        if (next.itemId == 'praticando_em_casa') {
-          destination = InlineTextViewerScreen(
-            title: next.viewerTitle,
-            text: PraticandoEmCasaTextCatalog.forSession(sessionNumber),
-            sessaoId: sessionId,
-            itemId: next.itemId,
-            isSupplementary: false,
-          );
-        } else {
-          final normalizedTitle =
-              next.title.replaceFirst(RegExp(r'^\s*\d+\.\s*'), '').trim().toLowerCase();
-          final normalizedPdfTitle = next.viewerTitle.toLowerCase();
-          final materialText = MaterialTextCatalog.forMaterial(
-            sessionNumber: sessionNumber,
-            normalizedTitle: normalizedTitle,
-            normalizedPdfTitle: normalizedPdfTitle,
-          );
-
-          if (materialText != null) {
-            destination = FolhetoTextViewerScreen(
-              title: next.viewerTitle,
-              text: materialText,
-              sessaoId: sessionId,
-              itemId: next.itemId,
-            );
-          } else {
-            destination = PdfViewerScreen(
-              pdfPath: next.path,
-              downloadPath: next.downloadPath ?? next.path,
-              pdfTitle: next.viewerTitle,
-              sessaoId: sessionId,
-              itemId: next.itemId,
-              isSupplementary: false,
-            );
-          }
-        }
-        break;
-    }
+    final destination = buildSessionContentDestination(
+      sessionNumber: sessionNumber,
+      item: next,
+    );
 
     await Navigator.push(
       context,
@@ -472,47 +414,10 @@ class _UnifiedTasksList extends StatelessWidget {
               ),
             );
 
-            final Widget destination;
-            switch (item.type) {
-              case SessionContentType.audio:
-                destination = AudioPlayerScreen(
-                  audioPath: item.path,
-                  audioTitle: item.viewerTitle,
-                  sessaoId: sessionId,
-                  itemId: item.itemId,
-                  isSupplementary: false,
-                );
-                break;
-              case SessionContentType.video:
-                destination = VideoPlayerScreen(
-                  videoPath: item.path,
-                  videoTitle: item.viewerTitle,
-                  sessaoId: sessionId,
-                  itemId: item.itemId,
-                  isSupplementary: false,
-                );
-                break;
-              case SessionContentType.pdf:
-                if (item.itemId == 'praticando_em_casa') {
-                  destination = InlineTextViewerScreen(
-                    title: item.viewerTitle,
-                    text: PraticandoEmCasaTextCatalog.forSession(sessionNumber),
-                    sessaoId: sessionId,
-                    itemId: item.itemId,
-                    isSupplementary: false,
-                  );
-                } else {
-                  destination = PdfViewerScreen(
-                    pdfPath: item.path,
-                    downloadPath: item.downloadPath ?? item.path,
-                    pdfTitle: item.viewerTitle,
-                    sessaoId: sessionId,
-                    itemId: item.itemId,
-                    isSupplementary: false,
-                  );
-                }
-                break;
-            }
+            final destination = buildSessionContentDestination(
+              sessionNumber: sessionNumber,
+              item: item,
+            );
 
             await Navigator.push(
               context,
@@ -542,8 +447,8 @@ class _UnifiedTasksList extends StatelessWidget {
             final pathLower = item.pdfPath.toLowerCase();
 
             final isSession2PosturasSentada = sessionNumber == 2 &&
-              (normalizedTitle.contains('posturas sentada') ||
-                normalizedPdfTitle.contains('posturas sentada'));
+                (normalizedTitle.contains('posturas sentada') ||
+                    normalizedPdfTitle.contains('posturas sentada'));
 
             final isImagePath = pathLower.endsWith('.png') ||
                 pathLower.endsWith('.jpg') ||

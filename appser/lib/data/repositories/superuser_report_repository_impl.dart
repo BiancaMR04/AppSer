@@ -198,7 +198,7 @@ class SuperuserReportRepositoryImpl implements SuperuserReportRepository {
 
       final groupId = (userDoc['groupId'] ?? '').toString();
       final groupName = (userDoc['groupName'] ?? '').toString();
-        final userCreatedAt = _isoOrEmpty(userDoc['createdAt']);
+      final userCreatedAt = _isoOrEmpty(userDoc['createdAt']);
       final dataInicio = _isoOrEmpty(userDoc['dataInicio']);
       final sessionsLastAutoUnlockAt =
           _isoOrEmpty(userDoc['sessionsLastAutoUnlockAt']);
@@ -273,8 +273,8 @@ class SuperuserReportRepositoryImpl implements SuperuserReportRepository {
       for (final evAny in taskEvents) {
         final ev = Map<String, dynamic>.from(evAny as Map);
         final sessaoId = (ev['sessaoId'] ?? '').toString();
-        final sessao = (sessoes[sessaoId] as Map<String, dynamic>?) ??
-            <String, dynamic>{};
+        final sessao =
+            (sessoes[sessaoId] as Map<String, dynamic>?) ?? <String, dynamic>{};
 
         final eventCreatedAt = ev['createdAt'];
         final createdAtStr = _isoOrEmpty(eventCreatedAt);
@@ -289,7 +289,6 @@ class SuperuserReportRepositoryImpl implements SuperuserReportRepository {
           _csvEscape(nome),
           _csvEscape(cpf),
           _csvEscape(email),
-
           _csvEscape(groupId),
           _csvEscape(groupName),
           _csvEscape(userCreatedAt),
@@ -305,7 +304,6 @@ class SuperuserReportRepositoryImpl implements SuperuserReportRepository {
           _csvEscape(session7),
           _csvEscape(session8),
           _csvEscape(progressJson),
-
           _csvEscape(sessaoId),
           _csvEscape(ev['id'] ?? ''),
           _csvEscape(ev['eventType'] ?? ''),
@@ -333,8 +331,8 @@ class SuperuserReportRepositoryImpl implements SuperuserReportRepository {
       // 2) Resumo por sessão (sempre exporta, mesmo se houver eventos)
       for (final sessaoEntry in sessoes.entries) {
         final sessaoId = sessaoEntry.key;
-        final sessao = (sessaoEntry.value as Map<String, dynamic>?) ??
-            <String, dynamic>{};
+        final sessao =
+            (sessaoEntry.value as Map<String, dynamic>?) ?? <String, dynamic>{};
 
         buffer.writeln([
           _csvEscape('session_summary'),
@@ -399,67 +397,275 @@ class SuperuserReportRepositoryImpl implements SuperuserReportRepository {
     final usersSheet = excel['Usuarios'];
     final sessionsSheet = excel['Sessoes'];
     final eventsSheet = excel['Eventos'];
+    final dictionarySheet = excel['Dicionario'];
 
     usersSheet.appendRow([
-      ex.TextCellValue('uid'),
-      ex.TextCellValue('nome'),
-      ex.TextCellValue('cpf'),
-      ex.TextCellValue('email'),
-      ex.TextCellValue('groupId'),
-      ex.TextCellValue('groupName'),
-      ex.TextCellValue('createdAt'),
-      ex.TextCellValue('dataInicio'),
-      ex.TextCellValue('sessionsLastAutoUnlockAt'),
-      ex.TextCellValue('session0'),
-      ex.TextCellValue('session1'),
-      ex.TextCellValue('session2'),
-      ex.TextCellValue('session3'),
-      ex.TextCellValue('session4'),
-      ex.TextCellValue('session5'),
-      ex.TextCellValue('session6'),
-      ex.TextCellValue('session7'),
-      ex.TextCellValue('session8'),
-      ex.TextCellValue('progress_json'),
+      ex.TextCellValue('ID do participante'),
+      ex.TextCellValue('Nome'),
+      ex.TextCellValue('CPF'),
+      ex.TextCellValue('E-mail'),
+      ex.TextCellValue('ID do grupo'),
+      ex.TextCellValue('Grupo'),
+      ex.TextCellValue('Data de cadastro'),
+      ex.TextCellValue('Data de inicio no protocolo'),
+      ex.TextCellValue('Ultima liberacao automatica'),
+      ex.TextCellValue('Sessao 0 liberada'),
+      ex.TextCellValue('Sessao 1 liberada'),
+      ex.TextCellValue('Sessao 2 liberada'),
+      ex.TextCellValue('Sessao 3 liberada'),
+      ex.TextCellValue('Sessao 4 liberada'),
+      ex.TextCellValue('Sessao 5 liberada'),
+      ex.TextCellValue('Sessao 6 liberada'),
+      ex.TextCellValue('Sessao 7 liberada'),
+      ex.TextCellValue('Sessao 8 liberada'),
+      ex.TextCellValue('Progresso nos materiais'),
     ]);
 
     sessionsSheet.appendRow([
-      ex.TextCellValue('uid'),
-      ex.TextCellValue('nome'),
-      ex.TextCellValue('cpf'),
-      ex.TextCellValue('email'),
-      ex.TextCellValue('groupId'),
-      ex.TextCellValue('groupName'),
-      ex.TextCellValue('sessaoId'),
-      ex.TextCellValue('vezesFinalizada'),
-      ex.TextCellValue('vezesFinalizadaPorConclusao'),
-      ex.TextCellValue('tarefasCompletasTotal'),
-      ex.TextCellValue('tarefasParciaisTotal'),
-      ex.TextCellValue('cliques_json'),
-      ex.TextCellValue('conclusoesPorItemId_json'),
-      ex.TextCellValue('parciaisPorItemId_json'),
+      ex.TextCellValue('ID do participante'),
+      ex.TextCellValue('Nome'),
+      ex.TextCellValue('CPF'),
+      ex.TextCellValue('E-mail'),
+      ex.TextCellValue('ID do grupo'),
+      ex.TextCellValue('Grupo'),
+      ex.TextCellValue('Sessao'),
+      ex.TextCellValue('Finalizacoes registradas'),
+      ex.TextCellValue('Finalizacoes por conclusao das atividades'),
+      ex.TextCellValue('Atividades concluidas'),
+      ex.TextCellValue('Atividades iniciadas e nao concluidas'),
+      ex.TextCellValue('Cliques por atividade'),
+      ex.TextCellValue('Conclusoes por atividade'),
+      ex.TextCellValue('Parciais por atividade'),
     ]);
 
     eventsSheet.appendRow([
-      ex.TextCellValue('uid'),
-      ex.TextCellValue('nome'),
-      ex.TextCellValue('cpf'),
-      ex.TextCellValue('email'),
-      ex.TextCellValue('groupId'),
-      ex.TextCellValue('groupName'),
-      ex.TextCellValue('eventId'),
-      ex.TextCellValue('eventType'),
-      ex.TextCellValue('createdAt'),
-      ex.TextCellValue('sessaoId'),
-      ex.TextCellValue('tipo'),
-      ex.TextCellValue('itemId'),
-      ex.TextCellValue('isSupplementary'),
-      ex.TextCellValue('title'),
-      ex.TextCellValue('path'),
-      ex.TextCellValue('positionSeconds'),
-      ex.TextCellValue('positionMinute'),
-      ex.TextCellValue('durationSeconds'),
-      ex.TextCellValue('mode'),
+      ex.TextCellValue('ID do participante'),
+      ex.TextCellValue('Nome'),
+      ex.TextCellValue('CPF'),
+      ex.TextCellValue('E-mail'),
+      ex.TextCellValue('ID do grupo'),
+      ex.TextCellValue('Grupo'),
+      ex.TextCellValue('ID do evento'),
+      ex.TextCellValue('Tipo de evento'),
+      ex.TextCellValue('Data e hora do evento'),
+      ex.TextCellValue('Sessao'),
+      ex.TextCellValue('Tipo de conteudo'),
+      ex.TextCellValue('ID da atividade'),
+      ex.TextCellValue('Material de apoio'),
+      ex.TextCellValue('Titulo da atividade'),
+      ex.TextCellValue('Arquivo ou caminho'),
+      ex.TextCellValue('Ponto em que parou (segundos)'),
+      ex.TextCellValue('Ponto em que parou (minuto)'),
+      ex.TextCellValue('Duracao total (segundos)'),
+      ex.TextCellValue('Modo de registro'),
     ]);
+
+    dictionarySheet.appendRow([
+      ex.TextCellValue('Aba'),
+      ex.TextCellValue('Coluna'),
+      ex.TextCellValue('Descricao'),
+    ]);
+
+    void addDictionaryRow({
+      required String sheet,
+      required String column,
+      required String description,
+    }) {
+      dictionarySheet.appendRow([
+        ex.TextCellValue(sheet),
+        ex.TextCellValue(column),
+        ex.TextCellValue(description),
+      ]);
+    }
+
+    void addCommonParticipantColumns(String sheet) {
+      addDictionaryRow(
+        sheet: sheet,
+        column: 'ID do participante',
+        description:
+            'Identificador unico do participante no Firebase Authentication.',
+      );
+      addDictionaryRow(
+        sheet: sheet,
+        column: 'Nome',
+        description: 'Nome cadastrado para o participante.',
+      );
+      addDictionaryRow(
+        sheet: sheet,
+        column: 'CPF',
+        description: 'CPF cadastrado para o participante.',
+      );
+      addDictionaryRow(
+        sheet: sheet,
+        column: 'E-mail',
+        description: 'E-mail cadastrado para o participante.',
+      );
+      addDictionaryRow(
+        sheet: sheet,
+        column: 'ID do grupo',
+        description: 'Identificador interno do grupo do participante.',
+      );
+      addDictionaryRow(
+        sheet: sheet,
+        column: 'Grupo',
+        description: 'Nome do grupo do participante.',
+      );
+    }
+
+    addCommonParticipantColumns('Usuarios');
+    addDictionaryRow(
+      sheet: 'Usuarios',
+      column: 'Data de cadastro',
+      description: 'Data em que o participante foi criado no app.',
+    );
+    addDictionaryRow(
+      sheet: 'Usuarios',
+      column: 'Data de inicio no protocolo',
+      description:
+          'Data usada como referencia para liberar novas sessoes semanalmente.',
+    );
+    addDictionaryRow(
+      sheet: 'Usuarios',
+      column: 'Ultima liberacao automatica',
+      description:
+          'Ultimo momento em que o app atualizou automaticamente as sessoes liberadas.',
+    );
+    for (var i = 0; i <= 8; i++) {
+      addDictionaryRow(
+        sheet: 'Usuarios',
+        column: 'Sessao $i liberada',
+        description:
+            'Indica se a sessao $i estava liberada para o participante no momento da exportacao.',
+      );
+    }
+    addDictionaryRow(
+      sheet: 'Usuarios',
+      column: 'Progresso nos materiais',
+      description:
+          'Dados brutos em formato JSON sobre progresso de materiais e PDFs.',
+    );
+
+    addCommonParticipantColumns('Sessoes');
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Sessao',
+      description: 'Sessao do protocolo relacionada aos dados da linha.',
+    );
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Finalizacoes registradas',
+      description:
+          'Quantidade de vezes em que a sessao foi marcada como finalizada.',
+    );
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Finalizacoes por conclusao das atividades',
+      description:
+          'Quantidade de finalizacoes geradas pela conclusao das atividades obrigatorias da sessao.',
+    );
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Atividades concluidas',
+      description:
+          'Total de atividades concluidas pelo participante nessa sessao.',
+    );
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Atividades iniciadas e nao concluidas',
+      description:
+          'Total de atividades iniciadas, mas sem conclusao registrada nessa sessao.',
+    );
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Cliques por atividade',
+      description:
+          'Mapa em JSON com a quantidade de acessos ou cliques em cada atividade.',
+    );
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Conclusoes por atividade',
+      description:
+          'Mapa em JSON com a quantidade de conclusoes registradas por atividade.',
+    );
+    addDictionaryRow(
+      sheet: 'Sessoes',
+      column: 'Parciais por atividade',
+      description:
+          'Mapa em JSON com atividades iniciadas e nao concluidas, por atividade.',
+    );
+
+    addCommonParticipantColumns('Eventos');
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'ID do evento',
+      description: 'Identificador unico do evento de interacao.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Tipo de evento',
+      description:
+          'Tipo da interacao registrada, como clique, conclusao ou progresso parcial.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Data e hora do evento',
+      description: 'Momento em que a interacao foi registrada.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Sessao',
+      description: 'Sessao do protocolo associada ao evento.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Tipo de conteudo',
+      description: 'Formato do conteudo acessado, como audio, video ou PDF.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'ID da atividade',
+      description: 'Identificador interno da atividade acessada.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Material de apoio',
+      description:
+          'Indica se o evento aconteceu em material complementar, e nao em atividade principal.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Titulo da atividade',
+      description: 'Titulo exibido ao participante para a atividade.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Arquivo ou caminho',
+      description: 'Caminho interno do arquivo de audio, video, PDF ou texto.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Ponto em que parou (segundos)',
+      description:
+          'Posicao em segundos em que o participante parou audio ou video, quando aplicavel.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Ponto em que parou (minuto)',
+      description:
+          'Posicao em minutos em que o participante parou audio ou video, quando aplicavel.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Duracao total (segundos)',
+      description:
+          'Duracao total do audio ou video em segundos, quando disponivel.',
+    );
+    addDictionaryRow(
+      sheet: 'Eventos',
+      column: 'Modo de registro',
+      description:
+          'Como a interacao foi registrada, por exemplo abertura do conteudo ou chegada ao fim.',
+    );
 
     for (final usuario in usuarios) {
       final uid = (usuario['uid'] ?? '').toString();
@@ -508,8 +714,8 @@ class SuperuserReportRepositoryImpl implements SuperuserReportRepository {
           (usuario['sessoes'] as Map<String, dynamic>?) ?? <String, dynamic>{};
       for (final sessaoEntry in sessoes.entries) {
         final sessaoId = sessaoEntry.key;
-        final sessao = (sessaoEntry.value as Map<String, dynamic>?) ??
-            <String, dynamic>{};
+        final sessao =
+            (sessaoEntry.value as Map<String, dynamic>?) ?? <String, dynamic>{};
 
         sessionsSheet.appendRow([
           ex.TextCellValue(uid),
