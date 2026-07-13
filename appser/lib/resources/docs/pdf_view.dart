@@ -1,13 +1,15 @@
+import 'dart:io';
+
 import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_card_container.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart' as syncfusion_pdf;
 
-import '../../presentation/controllers/pdf_viewer_controller.dart';
+import '../../presentation/controllers/pdf_viewer_controller.dart' as app_pdf;
 import '../../screens/user_tracking_service.dart';
 
 class PdfViewerScreen extends StatefulWidget {
@@ -37,12 +39,14 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   String localPath = '';
   bool _isPdfViewed = false;
 
-  late final PdfViewerController _controller;
+  late final app_pdf.PdfViewerController _controller;
+  late final syncfusion_pdf.PdfViewerController _pdfController;
 
   @override
   void initState() {
     super.initState();
-    _controller = context.read<PdfViewerController>();
+    _controller = context.read<app_pdf.PdfViewerController>();
+    _pdfController = syncfusion_pdf.PdfViewerController();
     _downloadPdf(widget.pdfPath);
   }
 
@@ -153,13 +157,27 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                             height: viewerHeight,
                             child: AppCardContainer(
                               clipContent: true,
-                              child: PDFView(
-                                filePath: localPath,
-                                backgroundColor: Colors.white,
-                                fitEachPage: true,
-                                fitPolicy: FitPolicy.BOTH,
-                                onRender: (_) {
+                              child: syncfusion_pdf.SfPdfViewer.file(
+                                File(localPath),
+                                controller: _pdfController,
+                                pageLayoutMode:
+                                    syncfusion_pdf.PdfPageLayoutMode.single,
+                                scrollDirection:
+                                    syncfusion_pdf.PdfScrollDirection.vertical,
+                                canShowScrollHead: false,
+                                canShowPaginationDialog: false,
+                                canShowScrollStatus: false,
+                                canShowHyperlinkDialog: false,
+                                enableDoubleTapZooming: true,
+                                pageSpacing: 0,
+                                initialZoomLevel: 1,
+                                onDocumentLoaded: (_) {
                                   _onPdfViewed();
+                                },
+                                onDocumentLoadFailed: (details) {
+                                  debugPrint(
+                                    'Erro ao abrir o PDF: ${details.error}',
+                                  );
                                 },
                               ),
                             ),
