@@ -3,10 +3,11 @@ import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_card_container.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/presentation/controllers/storage_url_controller.dart';
 import 'package:appser/screens/user_tracking_service.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 
 class ImageViewerScreen extends StatefulWidget {
   final String imagePath;
@@ -55,12 +56,15 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
     }
 
     try {
-      final ref = FirebaseStorage.instance.ref(widget.imagePath);
-      final url = await ref.getDownloadURL();
+      final url = await context
+          .read<StorageUrlController>()
+          .getDownloadUrl(widget.imagePath);
       if (!mounted) return;
       setState(() {
         _downloadUrl = url;
       });
+
+      precacheImage(NetworkImage(url), context);
     } catch (e) {
       if (!mounted) return;
       setState(() {

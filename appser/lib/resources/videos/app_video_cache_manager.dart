@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -20,11 +21,22 @@ class AppVideoCacheManager {
       maxNrOfCacheObjects: 300,
     ),
   );
+  final Map<String, Future<File>> _inFlightDownloads = <String, Future<File>>{};
 
   Future<File> getVideoFile({
     required String videoUrl,
     required String videoPath,
   }) async {
+    final key = _entryKey(videoPath);
+    final cached = await getCachedVideoFile(videoPath: videoPath);
+    if (cached != null) {
+      return cached;
+    }
+
+    return _downloadAndIndex(videoUrl: videoUrl, key: key);
+  }
+
+  Future<File?> getCachedVideoFile({required String videoPath}) async {
     final key = _entryKey(videoPath);
     final cached = await _cacheManager.getFileFromCache(key);
 
@@ -34,10 +46,47 @@ class AppVideoCacheManager {
       return cached.file;
     }
 
-    final downloaded = await _cacheManager.downloadFile(videoUrl, key: key);
-    await _touchAndIndex(key: key, file: downloaded.file);
-    await _cleanupIfNeeded();
-    return downloaded.file;
+    return null;
+  }
+
+  Future<void> prefetchVideo({
+    required String videoUrl,
+    required String videoPath,
+  }) async {
+    final key = _entryKey(videoPath);
+    final cached = await _cacheManager.getFileFromCache(key);
+    if (cached != null && await cached.file.exists()) {
+      await _touchAndIndex(key: key, file: cached.file);
+      await _cleanupIfNeeded();
+      return;
+    }
+
+    if (_inFlightDownloads.containsKey(key)) {
+      return;
+    }
+
+    unawaited(_downloadAndIndex(videoUrl: videoUrl, key: key));
+  }
+
+  Future<File> _downloadAndIndex({
+    required String videoUrl,
+    required String key,
+  }) {
+    final existing = _inFlightDownloads[key];
+    if (existing != null) {
+      return existing;
+    }
+
+    final downloadFuture = _cacheManager.downloadFile(videoUrl, key: key).then((downloaded) async {
+      await _touchAndIndex(key: key, file: downloaded.file);
+      await _cleanupIfNeeded();
+      return downloaded.file;
+    }).whenComplete(() {
+      _inFlightDownloads.remove(key);
+    });
+
+    _inFlightDownloads[key] = downloadFuture;
+    return downloadFuture;
   }
 
   String _entryKey(String videoPath) {

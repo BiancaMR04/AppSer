@@ -72,21 +72,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           .getDownloadUrl(widget.videoPath);
 
       if (videoUrl.isNotEmpty) {
-        final videoFile = await AppVideoCacheManager.instance.getVideoFile(
-          videoUrl: videoUrl,
-          videoPath: widget.videoPath,
-        );
-
-        if (!mounted) return;
-
-        controller = VideoPlayerController.file(
-          File(videoFile.path),
-          videoPlayerOptions: VideoPlayerOptions(
-            allowBackgroundPlayback: true,
-            mixWithOthers: true,
-          ),
-        );
-        await controller.initialize();
+        controller = await _createControllerForVideo(videoUrl: videoUrl);
 
         if (!mounted) {
           await controller.dispose();
@@ -103,6 +89,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
         // Auto-play ao entrar na tela.
         await _videoPlayerController.play();
+        unawaited(
+          AppVideoCacheManager.instance.prefetchVideo(
+            videoUrl: videoUrl,
+            videoPath: widget.videoPath,
+          ),
+        );
         setState(() {});
       } else {
         print('Erro: URL do vídeo está vazia');
@@ -116,6 +108,39 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         const SnackBar(content: Text('Erro ao carregar o vídeo')),
       );
     }
+  }
+
+  Future<VideoPlayerController> _createControllerForVideo({
+    required String videoUrl,
+  }) async {
+    try {
+      final cachedVideoFile = await AppVideoCacheManager.instance
+          .getCachedVideoFile(videoPath: widget.videoPath);
+
+      if (cachedVideoFile != null) {
+        final fileController = VideoPlayerController.file(
+          File(cachedVideoFile.path),
+          videoPlayerOptions: VideoPlayerOptions(
+            allowBackgroundPlayback: true,
+            mixWithOthers: true,
+          ),
+        );
+        await fileController.initialize();
+        return fileController;
+      }
+    } catch (e) {
+      debugPrint('Falha ao ler cache local do vídeo, usando streaming direto: $e');
+    }
+
+    final networkController = VideoPlayerController.networkUrl(
+      Uri.parse(videoUrl),
+      videoPlayerOptions: VideoPlayerOptions(
+        allowBackgroundPlayback: true,
+        mixWithOthers: true,
+      ),
+    );
+    await networkController.initialize();
+    return networkController;
   }
 
   void _onVideoTick() {

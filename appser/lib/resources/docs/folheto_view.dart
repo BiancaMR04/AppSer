@@ -5,12 +5,13 @@ import 'package:appser/presentation/widgets/app_background.dart';
 import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/presentation/controllers/storage_url_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../screens/user_tracking_service.dart';
@@ -163,8 +164,7 @@ class _FolhetoViewerScreenState extends State<FolhetoViewerScreen> {
     }
 
     final path = widget.htmlPath!;
-    final ref = FirebaseStorage.instance.ref(path);
-    final url = await ref.getDownloadURL();
+    final url = await context.read<StorageUrlController>().getDownloadUrl(path);
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode != 200) {

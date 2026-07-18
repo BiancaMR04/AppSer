@@ -3,10 +3,11 @@ import 'package:appser/presentation/widgets/app_back_app_bar.dart';
 import 'package:appser/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:appser/presentation/widgets/app_card_container.dart';
 import 'package:appser/presentation/widgets/app_scaffold.dart';
+import 'package:appser/presentation/controllers/storage_url_controller.dart';
 import 'package:appser/screens/user_tracking_service.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MultiImageViewerScreen extends StatefulWidget {
   final List<String> imagePaths;
@@ -44,14 +45,20 @@ class _MultiImageViewerScreenState extends State<MultiImageViewerScreen> {
 
   Future<void> _bootstrap() async {
     try {
+      final storageUrlController = context.read<StorageUrlController>();
       final futures = widget.imagePaths
-          .map((p) => FirebaseStorage.instance.ref(p).getDownloadURL())
+          .map((p) => storageUrlController.getDownloadUrl(p))
           .toList(growable: false);
       final urls = await Future.wait(futures);
       if (!mounted) return;
       setState(() {
         _urls = urls;
       });
+
+      for (final url in urls) {
+        if (url == null) continue;
+        precacheImage(NetworkImage(url), context);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
